@@ -127,6 +127,13 @@ h1 span { color: var(--muted); font-weight: 500; }
 .month-name { font-family: var(--font-display); font-size: 1.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
 .month-note { color: var(--muted); font-size: .92rem; }
 
+.nowbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-height: 52px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font-variant-numeric: tabular-nums; }
+.nowbar .lbl { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; letter-spacing: .08em; text-transform: uppercase; }
+.nowbar .muted { color: var(--muted); }
+.dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); }
+.dot.on { background: var(--day-ink); box-shadow: 0 0 0 4px var(--day-bg); }
+.dot.warn { background: var(--wk-frame); }
+
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
 .tab { appearance: none; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; padding: 10px 16px 9px; font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); cursor: pointer; white-space: nowrap; }
 .tab:hover { color: var(--ink); }
@@ -331,6 +338,8 @@ table.grid { --who: 330px; border-collapse: separate; border-spacing: 0; table-l
     </div>
   </header>
 
+  <section class="nowbar" id="nowbar" aria-live="polite"></section>
+
   <nav class="tabs" role="tablist" aria-label="Vistas">
     <button class="tab" type="button" role="tab" id="tab-grid" data-tab="grid" aria-controls="view-grid" aria-selected="true">Grilla</button>
     <button class="tab" type="button" role="tab" id="tab-day" data-tab="day" aria-controls="view-day" aria-selected="false">Día</button>
@@ -393,6 +402,8 @@ table.grid { --who: 330px; border-collapse: separate; border-spacing: 0; table-l
     <strong>Creado por Francisco Javier Pacheco</strong>
     <p>Hecho con HTML (estructura), CSS (diseño) y JavaScript (funciones). Funciona directamente en el navegador, sin servidor ni base de datos. Tipografías: Barlow y Barlow Condensed, de Google Fonts.</p>
     <p>Datos transcritos de la rotativa impresa de octubre 2026, SAR Pedro de Valdivia.</p>
+    <p><strong>Versión de consulta.</strong> La rotativa oficial es la impresa. Ante cualquier diferencia o duda, consulta a tu jefatura.</p>
+    <p>Última actualización: 10 de octubre de 2026.</p>
     <p>Para usarla como app: en Android abre el menú ⋮ y toca "Instalar app"; en iPhone, con Safari, toca Compartir y "Agregar a inicio".</p>
   </footer>
 </div>
@@ -442,8 +453,19 @@ var ROTA = (function () {
     get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   };
-  var now = new Date();
-  var today = (now.getFullYear() === 2026 && now.getMonth() === 9) ? now.getDate() : null;
+  function chileNow() {
+    try {
+      var parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Santiago', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date());
+      var o = {};
+      parts.forEach(function (p) { o[p.type] = parseInt(p.value, 10); });
+      return { y: o.year, m: o.month, d: o.day, h: o.hour === 24 ? 0 : o.hour, min: o.minute };
+    } catch (e) {
+      var n = new Date();
+      return { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate(), h: n.getHours(), min: n.getMinutes() };
+    }
+  }
+  var cn = chileNow();
+  var today = (cn.y === 2026 && cn.m === 10) ? cn.d : null;
 
   var people = [];
   R.teams.forEach(function (t) {
@@ -528,6 +550,38 @@ var ROTA = (function () {
   function shiftDetail(team, d) {
     var s = R.shiftOf(team, d);
     return s ? '<div class="sd">' + factsHTML(s) + relayHTML(team, d) + '</div>' : '';
+  }
+
+  /* ---------- En turno ahora ---------- */
+  function renderNow() {
+    var el = $('#nowbar');
+    if (!el) return;
+    var c = chileNow();
+    var ym = c.y * 12 + c.m, base = 2026 * 12 + 10;
+    var html;
+    if (ym > base) {
+      html = '<span class="dot warn"></span><span class="lbl">Rotativa de octubre 2026</span><span>Este mes ya terminó. Revisa si hay una versión nueva con los turnos del mes actual.</span>';
+    } else if (ym < base) {
+      html = '<span class="dot warn"></span><span class="lbl">Rotativa de octubre 2026</span><span>Este mes aún no comienza.</span>';
+    } else {
+      var abs = (c.d - 1) * 24 + c.h + c.min / 60;
+      var cur = null, nxt = null;
+      allShifts().forEach(function (x) {
+        if (x.a <= abs && abs < x.b) cur = x;
+        else if (x.a > abs && (!nxt || x.a < nxt.a)) nxt = x;
+      });
+      if (cur) {
+        var r = relayOf(cur.team, cur.d);
+        html = '<span class="dot on"></span><span class="lbl">En turno ahora</span>' +
+          '<span class="tb t' + cur.team + '">' + cur.team + '</span><b>Equipo ' + cur.team + '</b>' +
+          '<span>Turno ' + cur.s.code + ' · ' + cur.s.label + '</span>' +
+          (r && r.next ? '<span class="muted">Lo releva el Equipo ' + r.next.team + ', ' + at(r.next.a) + '</span>' : '<span class="muted">El relevo queda fuera de esta rotativa.</span>');
+      } else {
+        html = '<span class="dot"></span><span class="lbl">Sin turno en la rotativa</span>' +
+          (nxt ? '<span>Ahora no hay un equipo de turno. Próximo: <b>Equipo ' + nxt.team + '</b> entra el ' + at(nxt.a) + '.</span>' : '<span>No quedan turnos este mes.</span>');
+      }
+    }
+    el.innerHTML = html;
   }
 
   /* ---------- Grid ---------- */
@@ -693,7 +747,7 @@ var ROTA = (function () {
     });
     html += '</div><div class="ticks"><span style="left:0">00:00</span><span style="left:25%">06:00</span><span style="left:50%">12:00</span><span style="left:75%">18:00</span><span style="left:100%">24:00</span></div>';
     if (d === today) {
-      var hr = now.getHours() + now.getMinutes() / 60;
+      var hr = cn.h + cn.min / 60;
       html += '<div class="now" style="left:calc(' + (hr / 24 * 100) + '% - 1px)"></div>';
     }
     html += '</div>';
@@ -814,6 +868,8 @@ var ROTA = (function () {
   renderGrid();
   renderDetail();
   renderLegend();
+  renderNow();
+  setInterval(renderNow, 60000);
   setTab(state.tab);
 })();
 </script>
