@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Rotativa de Turnos 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: app shell with a header and three tabs (Grilla, Día, Mi turno). The grid keeps the paper roster's structure: teams stacked, days across, worked hours at the right edge. */
+:root {
+  --bg: #eef3f3;
+  --surface: #ffffff;
+  --surface-2: #f5f8f8;
+  --ink: #12262b;
+  --muted: #566b71;
+  --line: #d3dedf;
+  --line-strong: #b4c5c7;
+  --accent: #0b6b68;
+  --accent-soft: #d8eeec;
+  --day-bg: #cfe9c5;
+  --day-ink: #1f5316;
+  --night-bg: #e1e8f4;
+  --night-ink: #243a66;
+  --wk-bg: #fbd9bd;
+  --wk-ink: #7d3508;
+  --wk-col: #fdf4ec;
+  --hol-bg: #f4c2c2;
+  --hol-ink: #9a1b1b;
+  --hol-col: #fdeaea;
+  --wk-frame: #d4601c;
+  --t1: #0b6b68;
+  --t2: #4a56b0;
+  --t3: #a03a74;
+  --on-team: #ffffff;
+  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e191c;
+    --surface: #142226;
+    --surface-2: #1a2b30;
+    --ink: #e3eeee;
+    --muted: #93a8ac;
+    --line: #26393d;
+    --line-strong: #3a5156;
+    --accent: #4fc3bd;
+    --accent-soft: #17383a;
+    --day-bg: #24502a;
+    --day-ink: #c3f0b8;
+    --night-bg: #1e2b4a;
+    --night-ink: #bcd0ff;
+    --wk-bg: #5a3417;
+    --wk-ink: #ffcfa3;
+    --wk-col: #1b2629;
+    --hol-bg: #6e2222;
+    --hol-ink: #ffc4c4;
+    --hol-col: #2b1b1e;
+    --wk-frame: #f0a066;
+    --t1: #3fb7b0;
+    --t2: #8c98f0;
+    --t3: #e57fb8;
+    --on-team: #0d1618;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e191c;
+  --surface: #142226;
+  --surface-2: #1a2b30;
+  --ink: #e3eeee;
+  --muted: #93a8ac;
+  --line: #26393d;
+  --line-strong: #3a5156;
+  --accent: #4fc3bd;
+  --accent-soft: #17383a;
+  --day-bg: #24502a;
+  --day-ink: #c3f0b8;
+  --night-bg: #1e2b4a;
+  --night-ink: #bcd0ff;
+  --wk-bg: #5a3417;
+  --wk-ink: #ffcfa3;
+  --wk-col: #1b2629;
+  --hol-bg: #6e2222;
+  --hol-ink: #ffc4c4;
+  --hol-col: #2b1b1e;
+  --wk-frame: #f0a066;
+  --t1: #3fb7b0;
+  --t2: #8c98f0;
+  --t3: #e57fb8;
+  --on-team: #0d1618;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-inline: 16px;
+  padding-block: 20px 48px;
+}
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { max-width: 1400px; margin-inline: auto; display: flex; flex-direction: column; gap: 18px; }
+
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+.eyebrow { margin: 0 0 4px; font-family: var(--font-display); font-weight: 600; letter-spacing: .16em; text-transform: uppercase; font-size: .95rem; color: var(--accent); }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(1.9rem, 5.5vw, 3rem); line-height: 1; text-transform: uppercase; text-wrap: balance; }
+h1 span { color: var(--muted); font-weight: 500; }
+.month { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; }
+.month-name { font-family: var(--font-display); font-size: 1.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.month-note { color: var(--muted); font-size: .92rem; }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { appearance: none; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; padding: 10px 16px 9px; font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+.panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
+.search { flex: 1 1 240px; max-width: 360px; min-width: 0; padding: 9px 12px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; }
+.search::placeholder { color: var(--muted); }
+.filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; flex: 1 1 380px; min-width: 0; }
+.field.team-field { flex: 0 1 210px; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; color: var(--muted); font-size: .85rem; }
+.keys span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line-strong); }
+.sw.D { background: var(--day-bg); }
+.sw.wk { background: var(--wk-col); border: 2px solid var(--wk-frame); }
+.sw.hol { background: var(--hol-bg); }
+.sw.today { background: var(--surface); border: 2px solid var(--accent); }
+
+/* Grid */
+.grid-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table.grid { --who: 330px; border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 100%; min-width: calc(var(--who) + 70px + 31 * 27px); }
+.grid th, .grid td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 0; text-align: center; height: 34px; }
+.grid tbody tr:last-child td, .grid tbody tr:last-child th { border-bottom: 0; }
+.grid thead th { height: auto; padding: 6px 0 5px; background: var(--surface-2); font-weight: 600; }
+.grid thead th.c-who { z-index: 3; }
+.c-who { width: var(--who); position: sticky; left: 0; z-index: 2; background: var(--surface); text-align: left; box-shadow: 1px 0 0 var(--line-strong); }
+.c-hrs { width: 70px; position: sticky; right: 0; z-index: 2; background: var(--surface); box-shadow: -1px 0 0 var(--line-strong); font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.grid thead th.c-hrs { z-index: 3; background: var(--surface-2); font-family: var(--font-body); font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-inline: 4px; line-height: 1.15; }
+.cap { display: block; padding: 0 10px; font-family: var(--font-display); font-weight: 600; font-size: .95rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+.dn { display: block; font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.dw { display: block; font-size: .7rem; font-weight: 500; color: var(--muted); }
+.grid thead th.wk { background: var(--wk-bg); color: var(--wk-ink); }
+.grid thead th.hol { background: var(--hol-bg); color: var(--hol-ink); }
+.grid thead th.wk .dw, .grid thead th.hol .dw { color: inherit; }
+.grid thead th.today { box-shadow: inset 0 3px 0 var(--accent); }
+
+.grid td.d { font-family: var(--font-display); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.grid td.wk { background: var(--wk-col); }
+.grid td.hol { background: var(--hol-col); }
+.grid td.sD { background: var(--day-bg); color: var(--day-ink); font-weight: 700; }
+.grid td.today { box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent); }
+/* Sábados y domingos enmarcados: borde izquierdo en sábado, derecho en domingo, cierre arriba y abajo */
+.grid .we-l { border-left: 2px solid var(--wk-frame); }
+.grid .we-r { border-right: 2px solid var(--wk-frame); }
+.grid thead th.wk { border-top: 2px solid var(--wk-frame); }
+.grid tbody tr:last-child td.wk { border-bottom: 2px solid var(--wk-frame); }
+.grid td.has { cursor: pointer; }
+.grid td.has:hover { filter: brightness(.95); }
+.grid td.pick { outline: 2px solid var(--ink); outline-offset: -3px; }
+.grid tr.sel th.c-who, .grid tr.sel td.c-hrs { background: var(--accent-soft); }
+.grid tr.sel td.d:not(.sD) { background: var(--accent-soft); }
+
+.who { display: flex; align-items: center; gap: 4px 10px; width: 100%; height: 34px; padding: 0 10px; background: none; border: 0; text-align: left; cursor: pointer; }
+.who:hover .nm { text-decoration: underline; }
+.nm { flex: 0 0 9.4rem; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rl { flex: 1 1 auto; min-width: 0; color: var(--muted); font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.grid tr.grp th, .grid tr.grp td { height: 30px; background: var(--surface-2); border-bottom: 1px solid var(--line-strong); }
+.grp-title { display: flex; align-items: center; gap: 8px; padding: 0 10px; font-family: var(--font-display); font-weight: 600; font-size: 1rem; letter-spacing: .08em; text-transform: uppercase; }
+.grp-title small { font-family: var(--font-body); font-size: .75rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.grid td.empty { height: auto; padding: 18px; text-align: left; color: var(--muted); }
+
+.tb { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 5px; font-family: var(--font-display); font-weight: 700; font-size: .9rem; color: var(--on-team); }
+.t1 { background: var(--t1); }
+.t2 { background: var(--t2); }
+.t3 { background: var(--t3); }
+
+.detail { display: flex; flex-direction: column; gap: 12px; min-height: 52px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.dh, .dline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.sd { display: grid; gap: 12px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 0; }
+.facts div { padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.facts dt { font-size: .74rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.55rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.facts dd small { font-family: var(--font-body); font-size: .78rem; font-weight: 500; color: var(--muted); }
+.relay { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.relay li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.relay .lbl { flex: 0 0 5.4rem; font-size: .74rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.relay .gap { flex: 1 1 100%; margin-left: calc(5.4rem + 10px); color: var(--muted); font-size: .82rem; }
+.shift .relay { margin-top: 12px; }
+.detail .muted, .hint { color: var(--muted); }
+.link { appearance: none; margin-left: auto; padding: 6px 12px; background: none; border: 1px solid var(--line-strong); border-radius: 8px; cursor: pointer; font-weight: 500; }
+.link:hover { border-color: var(--accent); color: var(--accent); }
+
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.card h3 { margin: 0 0 10px; font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.codes { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.codes li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-variant-numeric: tabular-nums; }
+.chip { min-width: 36px; padding: 1px 8px; border-radius: 6px; text-align: center; font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; }
+.chip.D { background: var(--day-bg); color: var(--day-ink); }
+.chip.N { background: var(--night-bg); color: var(--night-ink); }
+.chip.H { background: var(--hol-bg); color: var(--hol-ink); }
+.card .note { margin: 12px 0 0; color: var(--muted); font-size: .82rem; }
+.hol-txt { flex: 1 1 180px; min-width: 0; }
+.tag { margin-left: auto; padding: 1px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--muted); font-size: .8rem; font-weight: 600; }
+.tag.D { background: var(--day-bg); border-color: transparent; color: var(--day-ink); }
+.tag.N { background: var(--night-bg); border-color: transparent; color: var(--night-ink); }
+.foot { margin: 4px 0 0; color: var(--muted); font-size: .85rem; }
+.credit { display: grid; gap: 4px; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+.credit strong { color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; letter-spacing: .06em; text-transform: uppercase; }
+.credit p { margin: 0; max-width: 70ch; }
+
+/* Day view */
+.daystrip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+.dchip { flex: 0 0 auto; width: 46px; padding: 6px 0 7px; display: grid; justify-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.dchip .a { font-size: .72rem; color: var(--muted); }
+.dchip .b { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.dchip.wk { background: var(--wk-bg); color: var(--wk-ink); border-color: transparent; }
+.dchip.hol { background: var(--hol-bg); color: var(--hol-ink); border-color: transparent; }
+.dchip.wk .a, .dchip.hol .a { color: inherit; }
+.dchip.today { box-shadow: 0 0 0 2px var(--accent); }
+.dchip.sel { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.dchip.sel .a { color: inherit; opacity: .8; }
+
+.day-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.day-head h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.7rem; text-transform: uppercase; letter-spacing: .02em; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--muted); }
+.pill.wk { background: var(--wk-bg); border-color: transparent; color: var(--wk-ink); }
+.pill.hol { background: var(--hol-bg); border-color: transparent; color: var(--hol-ink); }
+.pill.today { background: var(--accent); border-color: transparent; color: var(--bg); }
+.pill.D { background: var(--day-bg); border-color: transparent; color: var(--day-ink); }
+.pill.N { background: var(--night-bg); border-color: transparent; color: var(--night-ink); }
+
+.tl-wrap { position: relative; padding-top: 4px; }
+.tl { position: relative; height: 46px; border: 1px solid var(--line-strong); border-radius: 8px; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--line) 6px 7px); overflow: hidden; }
+.seg { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; padding-inline: 10px; overflow: hidden; white-space: nowrap; color: var(--on-team); font-family: var(--font-display); font-weight: 700; font-size: 1rem; letter-spacing: .04em; }
+.seg.carry { opacity: .7; }
+.ticks { position: relative; height: 18px; margin-top: 4px; font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ticks span { position: absolute; transform: translateX(-50%); }
+.ticks span:first-child { transform: none; }
+.ticks span:last-child { transform: translateX(-100%); }
+.now { position: absolute; top: 0; bottom: 22px; width: 2px; background: var(--ink); }
+.now::after { content: "Ahora"; position: absolute; top: -2px; left: 5px; font-size: .7rem; font-weight: 600; color: var(--ink); background: var(--bg); padding: 0 3px; border-radius: 3px; }
+.cover { margin: 2px 0 0; color: var(--muted); font-size: .9rem; }
+
+.shifts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+.shift header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.shift h3 { margin: 0; font-size: 1.25rem; letter-spacing: .05em; color: var(--ink); }
+.when { width: 100%; color: var(--muted); font-variant-numeric: tabular-nums; }
+.crew { display: grid; grid-template-columns: 1fr; gap: 0; margin: 10px 0 0; padding: 0; list-style: none; }
+.crew li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.crew li:last-child { border-bottom: 0; }
+.crew b { font-weight: 600; white-space: nowrap; }
+.crew span { color: var(--muted); font-size: .88rem; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carry-note { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted); font-size: .9rem; }
+
+/* My shifts */
+.me-top { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; }
+.field { display: grid; gap: 4px; flex: 1 1 260px; max-width: 420px; min-width: 0; }
+.field label { font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.field select { width: 100%; padding: 9px 10px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; }
+.who-meta { display: flex; align-items: center; gap: 8px; color: var(--muted); padding-bottom: 8px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.stat { padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.stat b { display: block; font-family: var(--font-display); font-weight: 700; font-size: 2rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.stat span { font-size: .82rem; color: var(--muted); }
+.me-cal { max-width: 780px; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal .h { text-align: center; font-size: .8rem; font-weight: 600; color: var(--muted); }
+.cc { appearance: none; display: flex; flex-direction: column; justify-content: space-between; min-height: 62px; padding: 5px 7px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.cc .n { font-size: .75rem; color: var(--muted); }
+.cc .c { align-self: flex-end; font-family: var(--font-display); font-weight: 700; font-size: 1.4rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.cc.wk { background: var(--wk-col); }
+.cc.hol { background: var(--hol-col); border-color: var(--hol-ink); }
+.cc.D { background: var(--day-bg); color: var(--day-ink); border-color: transparent; }
+.cc.N { background: var(--night-bg); color: var(--night-ink); border-color: transparent; }
+.cc.D .n, .cc.N .n { color: inherit; opacity: .8; }
+.cc.today { box-shadow: 0 0 0 2px var(--accent); }
+.cc.pick { outline: 2px solid var(--ink); outline-offset: 1px; }
+.cc.blank { visibility: hidden; cursor: default; }
+.me-detail { display: flex; flex-direction: column; gap: 12px; min-height: 52px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  table.grid { --who: 150px; }
+  .who { flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; height: 38px; }
+  .grid th, .grid td { height: 38px; }
+  .nm { flex: none; max-width: 100%; font-size: .86rem; line-height: 1.15; }
+  .rl { flex: none; max-width: 100%; font-size: .7rem; line-height: 1.15; }
+  .grid tr.grp th, .grid tr.grp td { height: 30px; }
+  .cap { font-size: .8rem; }
+  .link { margin-left: 0; }
+  .cc { min-height: 54px; padding: 4px 5px; }
+  .cc .c { font-size: 1.2rem; }
+}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <p class="eyebrow">SAR Pedro de Valdivia</p>
+      <h1>Rotativa de turnos <span>2026</span></h1>
+    </div>
+    <div class="month">
+      <span class="month-name">Octubre</span>
+      <span class="month-note">182 h por persona · 3 equipos de 9</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Vistas">
+    <button class="tab" type="button" role="tab" id="tab-grid" data-tab="grid" aria-controls="view-grid" aria-selected="true">Grilla</button>
+    <button class="tab" type="button" role="tab" id="tab-day" data-tab="day" aria-controls="view-day" aria-selected="false">Día</button>
+    <button class="tab" type="button" role="tab" id="tab-me" data-tab="me" aria-controls="view-me" aria-selected="false">Mi turno</button>
+  </nav>
+
+  <main>
+    <section class="panel" id="view-grid" role="tabpanel" aria-labelledby="tab-grid">
+      <div class="toolbar">
+        <div class="filters">
+          <div class="field team-field">
+            <label for="team-select">Ver equipo</label>
+            <select id="team-select">
+              <option value="0">Todos los equipos</option>
+              <option value="1">Equipo 1</option>
+              <option value="2">Equipo 2</option>
+              <option value="3">Equipo 3</option>
+            </select>
+          </div>
+          <input class="search" id="q" type="search" placeholder="Buscar persona o cargo" aria-label="Buscar persona o cargo" autocomplete="off">
+        </div>
+        <div class="keys" aria-hidden="true">
+          <span><i class="sw D"></i>Turno de día</span>
+          <span><i class="sw wk"></i>Fin de semana</span>
+          <span><i class="sw hol"></i>Feriado</span>
+          <span><i class="sw today"></i>Hoy</span>
+        </div>
+      </div>
+      <div class="grid-wrap" id="grid-wrap">
+        <table class="grid" id="grid" aria-label="Rotativa de turnos de octubre 2026"></table>
+      </div>
+      <div class="detail" id="detail" aria-live="polite"></div>
+      <div class="legend" id="legend"></div>
+      <p class="foot">Los números son las horas de cada turno. Cada persona suma 182 h en el mes.</p>
+    </section>
+
+    <section class="panel" id="view-day" role="tabpanel" aria-labelledby="tab-day" hidden>
+      <div class="daystrip" id="daystrip" aria-label="Elegir día"></div>
+      <div id="day-body" class="panel"></div>
+    </section>
+
+    <section class="panel" id="view-me" role="tabpanel" aria-labelledby="tab-me" hidden>
+      <div class="me-top">
+        <div class="field">
+          <label for="who-select">Persona</label>
+          <select id="who-select"></select>
+        </div>
+        <div class="who-meta" id="who-meta"></div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="me-cal panel">
+        <div class="cal" id="cal"></div>
+        <div class="me-detail" id="me-detail" aria-live="polite"></div>
+        <div class="legend" id="me-legend"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="credit">
+    <strong>Creado por Francisco Javier Pacheco</strong>
+    <p>Hecho con HTML (estructura), CSS (diseño) y JavaScript (funciones). Funciona directamente en el navegador, sin servidor ni base de datos. Tipografías: Barlow y Barlow Condensed, de Google Fonts.</p>
+    <p>Datos transcritos de la rotativa impresa de octubre 2026, SAR Pedro de Valdivia.</p>
+  </footer>
+</div>
+
+<script>
+var ROTA = (function () {
+  var N15 = [15, 'N'];
+  var roles = ['Enfermera', 'TENS', 'TENS', 'TENS Clínica / Apoyo Farm', 'TENS Farmacia', 'TENS Traslados', 'Conductor', 'Administrativo Admisión', 'Tec. Médico'];
+  var teams = [
+    {
+      id: 1,
+      names: ['Consuelo Fuentes', 'Victor Astudillo', 'Yesenia Arriagada', 'Cecilia Silva', 'Jenny Alvarez', 'Karina Zavala', 'Cristian Montero', 'Elsa Jaramillo', 'Felipe Arriagada'],
+      shifts: { 3: [13, 'D'], 4: [13, 'D'], 6: N15, 9: N15, 12: N15, 15: N15, 17: [12, 'N'], 18: [12, 'N'], 21: N15, 24: [13, 'D'], 25: [14, 'D'], 27: N15, 30: N15 }
+    },
+    {
+      id: 2,
+      names: ['Carolina Arancibia', 'Elizabeth Contreras', 'Alexis Cortes', 'Marianela González', 'Marcia Arias', 'Ximena Saez', 'Mario Vasquez', 'Francisco Pacheco', 'Laura Castillo'],
+      shifts: { 1: N15, 3: [11, 'N'], 4: [11, 'N'], 7: N15, 10: [11, 'D'], 11: [11, 'D'], 13: N15, 16: N15, 19: N15, 22: N15, 24: [11, 'N'], 25: [10, 'N'], 28: N15, 31: [12, 'D'] }
+    },
+    {
+      id: 3,
+      names: ['Ninoska Valenzuela', 'Augusto Coilla', 'Daniela Saldaña', 'Maritza Vasquez', 'Karen Santibañez', 'Ignacio Valdebenito', 'Victor Parra', 'Victor Pardo (R)', 'Javier Moraga'],
+      shifts: { 2: N15, 5: N15, 8: N15, 10: [13, 'N'], 11: [13, 'N'], 14: N15, 17: [12, 'D'], 18: [12, 'D'], 20: N15, 23: N15, 26: N15, 29: N15, 31: [12, 'N'] }
+    }
+  ];
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmt(h) { return pad(h % 24) + ':00'; }
+  function info(c, k) {
+    var start = k === 'D' ? 8 : 32 - c;
+    var end = k === 'D' ? 8 + c : 8;
+    return { code: c, kind: k, start: start, end: end, hours: c, label: fmt(start) + ' – ' + fmt(end) };
+  }
+  function shiftOf(team, d) { var s = teams[team - 1].shifts[d]; return s ? info(s[0], s[1]) : null; }
+  function hoursOf(team) { var t = teams[team - 1].shifts, sum = 0; for (var k in t) { sum += t[k][0]; } return sum; }
+  return { days: 31, firstDow: 3, holidays: { 12: 'Encuentro de Dos Mundos', 31: 'Día Nacional de las Iglesias Evangélicas y Protestantes' }, roles: roles, teams: teams, info: info, shiftOf: shiftOf, hoursOf: hoursOf, fmt: fmt };
+})();
+</script>
+
+<script>
+(function () {
+  var R = ROTA;
+  var DOW = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  var DOWL = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+  var DOWS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+  var now = new Date();
+  var today = (now.getFullYear() === 2026 && now.getMonth() === 9) ? now.getDate() : null;
+
+  var people = [];
+  R.teams.forEach(function (t) {
+    t.names.forEach(function (n, i) { people.push({ id: people.length, team: t.id, name: n, role: R.roles[i] }); });
+  });
+
+  var TABS = ['grid', 'day', 'me'];
+  var savedTab = store.get('rota.tab');
+  var savedPerson = parseInt(store.get('rota.person'), 10);
+  var savedTeam = parseInt(store.get('rota.team'), 10);
+  var state = {
+    tab: TABS.indexOf(savedTab) >= 0 ? savedTab : 'grid',
+    day: today || 1,
+    person: (savedPerson >= 0 && savedPerson < people.length) ? savedPerson : 0,
+    focus: null,
+    picked: null,
+    mePick: null,
+    team: (savedTeam >= 0 && savedTeam <= R.teams.length) ? savedTeam : 0
+  };
+  var gridScrolled = false;
+
+  function dow(d) { return (R.firstDow + d - 1) % 7; }
+  function isWk(d) { return dow(d) >= 5; }
+  function weCls(d) {
+    if (!isWk(d)) return '';
+    return ((dow(d) === 5 || d === 1) ? 'we-l ' : '') + ((dow(d) === 6 || d === R.days) ? 'we-r ' : '');
+  }
+  function dayCls(d) { return (isWk(d) ? 'wk ' : '') + weCls(d) + (R.holidays[d] ? 'hol ' : '') + (d === today ? 'today' : ''); }
+  function dayTitle(d) { return DOWL[dow(d)] + ' ' + d + (R.holidays[d] ? ' · Feriado: ' + R.holidays[d] : '') + (d === today ? ' · hoy' : ''); }
+  function shortDay(d) { return DOWS[dow(d)] + ' ' + d; }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function kindName(k) { return k === 'D' ? 'Día' : 'Noche'; }
+  function teamPeople(t) { return people.filter(function (p) { return p.team === t; }); }
+  function firstName(p) { return p.name.split(' ')[0]; }
+
+  /* ---------- Relevos ---------- */
+  var ALL = null;
+  function allShifts() {
+    if (ALL) return ALL;
+    ALL = [];
+    R.teams.forEach(function (t) {
+      Object.keys(t.shifts).forEach(function (k) {
+        var d = +k, s = R.shiftOf(t.id, d);
+        ALL.push({ team: t.id, d: d, s: s, a: (d - 1) * 24 + s.start, b: s.kind === 'D' ? (d - 1) * 24 + s.end : d * 24 + 8 });
+      });
+    });
+    return ALL;
+  }
+  function relayOf(team, d) {
+    var list = allShifts(), me = null, next = null, prev = null;
+    list.forEach(function (x) { if (x.team === team && x.d === d) me = x; });
+    if (!me) return null;
+    list.forEach(function (x) {
+      if (x.team === team) return;
+      if (x.a >= me.b && (!next || x.a < next.a)) next = x;
+      if (x.b <= me.a && (!prev || x.b > prev.b)) prev = x;
+    });
+    return { me: me, next: next, prev: prev };
+  }
+  function at(abs) { return shortDay(Math.floor(abs / 24) + 1).toLowerCase() + ' a las ' + R.fmt(abs % 24); }
+  function gapNote(from, to) {
+    var h = to - from;
+    return h > 0 ? '<span class="gap">Entre ambos turnos hay ' + h + ' h sin turno en la rotativa (' + R.fmt(from % 24) + '–' + R.fmt(to % 24) + ').</span>' : '';
+  }
+  function relayHTML(team, d) {
+    var r = relayOf(team, d);
+    if (!r) return '';
+    var nx, pv;
+    if (r.next) nx = '<span class="tb t' + r.next.team + '">' + r.next.team + '</span><b>Equipo ' + r.next.team + '</b><span>entra el ' + at(r.next.a) + '</span>' + gapNote(r.me.b, r.next.a);
+    else nx = '<span class="muted">El turno siguiente queda fuera de esta rotativa (noviembre).</span>';
+    if (r.prev) pv = '<span class="tb t' + r.prev.team + '">' + r.prev.team + '</span><b>Equipo ' + r.prev.team + '</b><span>termina el ' + at(r.prev.b) + '</span>' + gapNote(r.prev.b, r.me.a);
+    else pv = '<span class="muted">El turno anterior queda fuera de esta rotativa (septiembre).</span>';
+    return '<ul class="relay"><li><span class="lbl">Lo releva</span>' + nx + '</li><li><span class="lbl">Releva a</span>' + pv + '</li></ul>';
+  }
+  function factsHTML(s) {
+    return '<dl class="facts">' +
+      '<div><dt>Entrada</dt><dd>' + R.fmt(s.start) + '</dd></div>' +
+      '<div><dt>Salida</dt><dd>' + R.fmt(s.end) + (s.kind === 'N' ? ' <small>día siguiente</small>' : '') + '</dd></div>' +
+      '<div><dt>Horas</dt><dd>' + s.hours + ' h</dd></div>' +
+      '<div><dt>Tipo</dt><dd>' + kindName(s.kind) + ' <small>turno ' + s.code + '</small></dd></div></dl>';
+  }
+  function shiftDetail(team, d) {
+    var s = R.shiftOf(team, d);
+    return s ? '<div class="sd">' + factsHTML(s) + relayHTML(team, d) + '</div>' : '';
+  }
+
+  /* ---------- Grid ---------- */
+  function rowHTML(p) {
+    var cells = '';
+    for (var d = 1; d <= R.days; d++) {
+      var s = R.shiftOf(p.team, d);
+      var cls = 'd ' + dayCls(d) + (s ? ' has s' + s.kind : '') + (state.focus === p.id && state.picked === d ? ' pick' : '');
+      cells += '<td class="' + cls + '" data-d="' + d + '">' + (s ? s.code : '') + '</td>';
+    }
+    return '<tr data-p="' + p.id + '"' + (state.focus === p.id ? ' class="sel"' : '') + '>' +
+      '<th scope="row" class="c-who"><button type="button" class="who" data-who="' + p.id + '"><span class="nm">' + p.name + '</span><span class="rl">' + p.role + '</span></button></th>' +
+      cells + '<td class="c-hrs">' + R.hoursOf(p.team) + '</td></tr>';
+  }
+
+  function renderGrid() {
+    var q = $('#q').value.trim().toLowerCase();
+    var h = '<thead><tr><th class="c-who" scope="col"><span class="cap">Conformación de equipos</span></th>';
+    for (var d = 1; d <= R.days; d++) {
+      h += '<th scope="col" class="' + dayCls(d) + '" title="' + dayTitle(d) + '"><span class="dn">' + d + '</span><span class="dw">' + DOW[dow(d)] + '</span></th>';
+    }
+    h += '<th class="c-hrs" scope="col">Hrs trabajadas</th></tr></thead><tbody>';
+    var shown = 0;
+    var blanks = '';
+    for (var bd = 1; bd <= R.days; bd++) blanks += '<td class="d ' + dayCls(bd) + '"></td>';
+    R.teams.forEach(function (t) {
+      if (state.team && t.id !== state.team) return;
+      var rows = '';
+      teamPeople(t.id).forEach(function (p) {
+        if (q && (p.name + ' ' + p.role).toLowerCase().indexOf(q) < 0) return;
+        shown++;
+        rows += rowHTML(p);
+      });
+      if (rows) {
+        h += '<tr class="grp"><th scope="rowgroup" class="c-who"><span class="grp-title"><span class="tb t' + t.id + '">' + t.id + '</span>Equipo ' + t.id + '<small>9 personas</small></span></th>' + blanks + '<td class="c-hrs"></td></tr>' + rows;
+      }
+    });
+    if (!shown) h += '<tr><td class="empty" colspan="' + (R.days + 2) + '">Ninguna persona coincide con la búsqueda.</td></tr>';
+    h += '</tbody>';
+    $('#grid').innerHTML = h;
+  }
+
+  function renderDetail() {
+    var el = $('#detail');
+    var p = state.focus != null ? people[state.focus] : null;
+    if (!p) { el.innerHTML = '<span class="hint">Toca el nombre de una persona o una celda para ver el detalle del turno.</span>'; return; }
+    var html = '<div class="dh"><span class="tb t' + p.team + '">' + p.team + '</span><strong>' + p.name + '</strong><span class="muted">' + p.role + ' · Equipo ' + p.team + '</span>' +
+      '<button type="button" class="link" data-goto="' + p.id + '">Ver calendario de ' + firstName(p) + '</button></div>';
+    if (state.picked) {
+      var s = R.shiftOf(p.team, state.picked);
+      html += '<div class="dline"><strong>' + cap(DOWL[dow(state.picked)]) + ' ' + state.picked + ' de octubre</strong>' +
+        (state.picked === today ? '<span class="pill today">Hoy</span>' : '') +
+        (s ? '<span class="pill ' + s.kind + '">Turno de ' + (s.kind === 'D' ? 'día' : 'noche') + '</span>' : '<span class="pill">Libre</span>') + '</div>' +
+        shiftDetail(p.team, state.picked);
+    }
+    el.innerHTML = html;
+  }
+
+  function holidayCard(person) {
+    var list = '';
+    Object.keys(R.holidays).map(Number).sort(function (a, b) { return a - b; }).forEach(function (d) {
+      var extra = '';
+      if (person) {
+        var s = R.shiftOf(person.team, d);
+        extra = '<span class="tag ' + (s ? s.kind : '') + '">' + (s ? 'Turno ' + s.code + ' · ' + s.label : 'Libre') + '</span>';
+      }
+      list += '<li><span class="chip H">' + d + '</span><span class="hol-txt"><b>' + cap(DOWL[dow(d)]) + ' ' + d + '</b> · ' + R.holidays[d] + '</span>' + extra + '</li>';
+    });
+    var note = 'Según el calendario oficial de feriados de Chile 2026. Los feriados van en rojo y los sábados y domingos enmarcados en naranja.';
+    if (person) note = 'Según el calendario oficial de feriados de Chile 2026. A la derecha, el turno de ' + firstName(person) + ' cada feriado.';
+    return '<div class="card"><h3>Feriados de octubre 2026</h3><ul class="codes">' + list + '</ul><p class="note">' + note + '</p></div>';
+  }
+
+  function renderLegend() {
+    var dayList = '', nightList = '';
+    for (var c = 10; c <= 14; c++) {
+      var di = R.info(c, 'D');
+      dayList += '<li><span class="chip D">' + c + '</span>' + di.label + '</li>';
+    }
+    var n15 = R.info(15, 'N');
+    nightList += '<li><span class="chip N">15</span>' + n15.label + '</li>';
+    for (var k = 10; k <= 14; k++) {
+      var ni = R.info(k, 'N');
+      nightList += '<li><span class="chip N">' + k + '</span>' + ni.label + '</li>';
+    }
+    $('#legend').innerHTML =
+      '<div class="card"><h3>Horarios de día</h3><ul class="codes">' + dayList + '</ul></div>' +
+      '<div class="card"><h3>Horarios de noche</h3><ul class="codes">' + nightList + '</ul></div>' +
+      holidayCard(null);
+  }
+
+  function scrollGridToToday() {
+    var th = $('#grid thead th.today');
+    var wrap = $('#grid-wrap');
+    if (th && wrap.scrollWidth > wrap.clientWidth) wrap.scrollLeft = Math.max(0, th.offsetLeft - wrap.clientWidth / 2);
+  }
+
+  $('#q').addEventListener('input', function () { renderGrid(); });
+  $('#team-select').addEventListener('change', function (e) {
+    state.team = +e.target.value;
+    store.set('rota.team', String(state.team));
+    renderGrid();
+  });
+  $('#grid').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-who]');
+    if (b) {
+      state.focus = +b.getAttribute('data-who');
+      state.picked = null;
+      renderGrid(); renderDetail();
+      var nb = $('[data-who="' + state.focus + '"]');
+      if (nb) nb.focus();
+      return;
+    }
+    var td = e.target.closest('td[data-d]');
+    if (td) {
+      state.focus = +td.parentNode.getAttribute('data-p');
+      state.picked = +td.getAttribute('data-d');
+      renderGrid(); renderDetail();
+    }
+  });
+  $('#detail').addEventListener('click', function (e) {
+    var g = e.target.closest('[data-goto]');
+    if (g) { state.person = +g.getAttribute('data-goto'); state.mePick = null; store.set('rota.person', String(state.person)); setTab('me'); }
+  });
+
+  /* ---------- Day view ---------- */
+  function segments(d) {
+    var segs = [];
+    R.teams.forEach(function (t) {
+      var s = R.shiftOf(t.id, d);
+      if (s) segs.push({ team: t.id, start: s.kind === 'D' ? s.start : s.start, end: s.kind === 'D' ? s.end : 24, s: s, carry: false });
+      var pv = d > 1 ? R.shiftOf(t.id, d - 1) : null;
+      if (pv && pv.kind === 'N') segs.push({ team: t.id, start: 0, end: 8, s: pv, carry: true });
+    });
+    segs.sort(function (a, b) { return a.start - b.start; });
+    return segs;
+  }
+
+  function renderDay() {
+    var d = state.day;
+    var strip = '';
+    for (var i = 1; i <= R.days; i++) {
+      strip += '<button type="button" class="dchip ' + dayCls(i) + (i === d ? ' sel' : '') + '" data-day="' + i + '" aria-pressed="' + (i === d) + '" title="' + dayTitle(i) + '"><span class="a">' + DOWS[dow(i)] + '</span><span class="b">' + i + '</span></button>';
+    }
+    var stripEl = $('#daystrip');
+    stripEl.innerHTML = strip;
+    var sel = $('.dchip.sel', stripEl);
+    if (sel && stripEl.clientWidth) stripEl.scrollLeft = Math.max(0, sel.offsetLeft - (stripEl.clientWidth - sel.offsetWidth) / 2);
+
+    var segs = segments(d);
+    var covered = 0;
+    segs.forEach(function (g) { covered += g.end - g.start; });
+
+    var html = '<div class="day-head"><h2>' + cap(DOWL[dow(d)]) + ' ' + d + ' de octubre</h2>';
+    if (isWk(d)) html += '<span class="pill wk">Fin de semana</span>';
+    if (R.holidays[d]) html += '<span class="pill hol">Feriado: ' + R.holidays[d] + '</span>';
+    if (d === today) html += '<span class="pill today">Hoy</span>';
+    html += '</div>';
+
+    html += '<div class="tl-wrap"><div class="tl" role="img" aria-label="Cobertura de turnos durante las 24 horas del día">';
+    segs.forEach(function (g) {
+      html += '<div class="seg t' + g.team + (g.carry ? ' carry' : '') + '" style="left:' + (g.start / 24 * 100) + '%;width:' + ((g.end - g.start) / 24 * 100) + '%">Equipo ' + g.team + '</div>';
+    });
+    html += '</div><div class="ticks"><span style="left:0">00:00</span><span style="left:25%">06:00</span><span style="left:50%">12:00</span><span style="left:75%">18:00</span><span style="left:100%">24:00</span></div>';
+    if (d === today) {
+      var hr = now.getHours() + now.getMinutes() / 60;
+      html += '<div class="now" style="left:calc(' + (hr / 24 * 100) + '% - 1px)"></div>';
+    }
+    html += '</div>';
+    html += '<p class="cover">La rotativa cubre ' + covered + ' de 24 h este día. Las franjas rayadas no tienen turno en la rotativa.</p>';
+
+    html += '<div class="shifts">';
+    segs.filter(function (g) { return !g.carry; }).forEach(function (g) {
+      var s = g.s;
+      html += '<article class="card shift"><header><span class="tb t' + g.team + '">' + g.team + '</span><h3>Equipo ' + g.team + '</h3><span class="pill ' + s.kind + '">Turno de ' + (s.kind === 'D' ? 'día' : 'noche') + '</span><span class="when">Turno ' + s.code + ' · ' + s.label + ' · ' + s.hours + ' h</span></header>' + relayHTML(g.team, d) + '<ul class="crew">';
+      teamPeople(g.team).forEach(function (p) { html += '<li><b>' + p.name + '</b><span>' + p.role + '</span></li>'; });
+      html += '</ul></article>';
+    });
+    html += '</div>';
+
+    segs.filter(function (g) { return g.carry; }).forEach(function (g) {
+      html += '<p class="carry-note"><span class="tb t' + g.team + '">' + g.team + '</span>El Equipo ' + g.team + ' termina a las 08:00 el turno de noche que empezó el ' + shortDay(d - 1).toLowerCase() + '.</p>';
+    });
+
+    $('#day-body').innerHTML = html;
+  }
+
+  $('#daystrip').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-day]');
+    if (b) { state.day = +b.getAttribute('data-day'); renderDay(); }
+  });
+
+  /* ---------- My shifts ---------- */
+  function buildSelect() {
+    var h = '';
+    R.teams.forEach(function (t) {
+      h += '<optgroup label="Equipo ' + t.id + '">';
+      teamPeople(t.id).forEach(function (p) { h += '<option value="' + p.id + '">' + p.name + ' · ' + p.role + '</option>'; });
+      h += '</optgroup>';
+    });
+    $('#who-select').innerHTML = h;
+  }
+
+  function meDetailHTML(d, label) {
+    var p = people[state.person];
+    var s = R.shiftOf(p.team, d);
+    return '<div class="dline">' + (label ? '<span class="muted">' + label + '</span>' : '') +
+      '<strong>' + cap(DOWL[dow(d)]) + ' ' + d + ' de octubre</strong>' + (d === today ? '<span class="pill today">Hoy</span>' : '') +
+      (s ? '<span class="pill ' + s.kind + '">Turno de ' + (s.kind === 'D' ? 'día' : 'noche') + '</span>' : '<span class="pill">Libre</span>') + '</div>' +
+      shiftDetail(p.team, d);
+  }
+
+  function renderMe() {
+    var p = people[state.person];
+    var t = R.teams[p.team - 1];
+    $('#who-select').value = String(state.person);
+    $('#who-meta').innerHTML = '<span class="tb t' + p.team + '">' + p.team + '</span>Equipo ' + p.team + ' · ' + p.role;
+
+    var days = Object.keys(t.shifts).map(Number).sort(function (a, b) { return a - b; });
+    var nights = days.filter(function (d) { return t.shifts[d][1] === 'N'; }).length;
+    var wkDays = days.filter(isWk).length;
+    $('#stats').innerHTML =
+      '<div class="stat"><b>' + R.hoursOf(p.team) + '</b><span>Horas del mes</span></div>' +
+      '<div class="stat"><b>' + days.length + '</b><span>Turnos</span></div>' +
+      '<div class="stat"><b>' + nights + '</b><span>Turnos de noche</span></div>' +
+      '<div class="stat"><b>' + wkDays + '</b><span>Sábados y domingos</span></div>';
+
+    var cal = '';
+    DOW.forEach(function (l) { cal += '<div class="h">' + l + '</div>'; });
+    for (var b = 0; b < R.firstDow; b++) cal += '<span class="cc blank" aria-hidden="true"></span>';
+    for (var d = 1; d <= R.days; d++) {
+      var s = R.shiftOf(p.team, d);
+      cal += '<button type="button" class="cc ' + (s ? s.kind : '') + (isWk(d) ? ' wk' : '') + (R.holidays[d] ? ' hol' : '') + (d === today ? ' today' : '') + (state.mePick === d ? ' pick' : '') + '" data-md="' + d + '" title="' + dayTitle(d) + '"><span class="n">' + d + '</span><span class="c">' + (s ? s.code : '') + '</span></button>';
+    }
+    $('#cal').innerHTML = cal;
+
+    var ref = today || 1;
+    var next = null;
+    for (var i = 0; i < days.length; i++) { if (days[i] >= ref) { next = days[i]; break; } }
+    var det = '';
+    if (state.mePick) {
+      det = meDetailHTML(state.mePick);
+    } else if (next) {
+      det = meDetailHTML(next, today ? 'Próximo turno:' : 'Primer turno:');
+    } else {
+      det = '<span class="muted">No quedan turnos este mes.</span>';
+    }
+    $('#me-detail').innerHTML = det;
+    $('#me-legend').innerHTML = holidayCard(p);
+  }
+
+  $('#who-select').addEventListener('change', function (e) {
+    state.person = +e.target.value;
+    state.mePick = null;
+    store.set('rota.person', String(state.person));
+    renderMe();
+  });
+  $('#cal').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-md]');
+    if (b) { state.mePick = +b.getAttribute('data-md'); renderMe(); }
+  });
+
+  /* ---------- Tabs ---------- */
+  function setTab(t) {
+    state.tab = t;
+    store.set('rota.tab', t);
+    TABS.forEach(function (k) {
+      var on = k === t;
+      $('#tab-' + k).setAttribute('aria-selected', String(on));
+      $('#view-' + k).hidden = !on;
+    });
+    if (t === 'grid' && !gridScrolled) { gridScrolled = true; scrollGridToToday(); }
+    if (t === 'day') renderDay();
+    if (t === 'me') renderMe();
+  }
+  $('.tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-tab]');
+    if (b) setTab(b.getAttribute('data-tab'));
+  });
+
+  /* ---------- Start ---------- */
+  buildSelect();
+  $('#team-select').value = String(state.team);
+  renderGrid();
+  renderDetail();
+  renderLegend();
+  setTab(state.tab);
+})();
+</script>
+</body>
+</html>
