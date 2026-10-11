@@ -40,6 +40,8 @@
   --hol-ink: #9a1b1b;
   --hol-col: #fdeaea;
   --wk-frame: #d4601c;
+  --alert-bg: #8c2f0a;
+  --alert-ink: #ffffff;
   --t1: #0b6b68;
   --t2: #4a56b0;
   --t3: #a03a74;
@@ -69,6 +71,8 @@
     --hol-ink: #ffc4c4;
     --hol-col: #2b1b1e;
     --wk-frame: #f0a066;
+    --alert-bg: #ffd9b8;
+    --alert-ink: #3a1604;
     --t1: #3fb7b0;
     --t2: #8c98f0;
     --t3: #e57fb8;
@@ -97,6 +101,8 @@
   --hol-ink: #ffc4c4;
   --hol-col: #2b1b1e;
   --wk-frame: #f0a066;
+  --alert-bg: #ffd9b8;
+  --alert-ink: #3a1604;
   --t1: #3fb7b0;
   --t2: #8c98f0;
   --t3: #e57fb8;
@@ -130,6 +136,17 @@ h1 span { color: var(--muted); font-weight: 500; }
 .nowbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-height: 52px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font-variant-numeric: tabular-nums; }
 .nowbar .lbl { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; letter-spacing: .08em; text-transform: uppercase; }
 .nowbar .muted { color: var(--muted); }
+.alertbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.alertbar .field { flex: 0 1 210px; }
+.alertbar .install.on { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line-strong); }
+.alertbar .link { margin-left: 0; min-height: 44px; }
+.alertbar .install { min-height: 44px; }
+.alert-status { flex: 1 1 100%; margin: 0; color: var(--muted); font-size: .88rem; }
+.alertpop { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 14px 16px; background: var(--alert-bg); color: var(--alert-ink); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.ap-list { display: grid; gap: 10px; flex: 1 1 260px; min-width: 0; }
+.ap-item { display: grid; gap: 2px; }
+.ap-item strong { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; line-height: 1.15; letter-spacing: .02em; }
+.alert-close { appearance: none; min-height: 44px; padding: 8px 18px; border: 2px solid var(--alert-ink); border-radius: 8px; background: transparent; color: var(--alert-ink); font-weight: 600; cursor: pointer; }
 .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); }
 .dot.on { background: var(--day-ink); box-shadow: 0 0 0 4px var(--day-bg); }
 .dot.warn { background: var(--wk-frame); }
@@ -141,8 +158,10 @@ h1 span { color: var(--muted); font-weight: 500; }
 
 .panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
-.search { flex: 1 1 240px; max-width: 360px; min-width: 0; padding: 9px 12px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; }
+.search { width: 100%; min-width: 0; min-height: 44px; padding: 9px 12px; font-size: 16px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; -webkit-user-select: text; user-select: text; -webkit-appearance: none; appearance: none; touch-action: manipulation; }
 .search::placeholder { color: var(--muted); }
+.field.search-field { flex: 1 1 240px; max-width: 360px; }
+.field select { font-size: 16px; min-height: 44px; }
 .filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; flex: 1 1 380px; min-width: 0; }
 .field.team-field { flex: 0 1 210px; }
 .keys { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; color: var(--muted); font-size: .85rem; }
@@ -326,6 +345,8 @@ table.grid { --who: 330px; border-collapse: separate; border-spacing: 0; table-l
 </head>
 <body>
 <div class="app">
+  <div class="alertpop" id="alertpop" role="alert" hidden></div>
+
   <header class="top">
     <div>
       <p class="eyebrow">SAR Pedro de Valdivia</p>
@@ -339,6 +360,21 @@ table.grid { --who: 330px; border-collapse: separate; border-spacing: 0; table-l
   </header>
 
   <section class="nowbar" id="nowbar" aria-live="polite"></section>
+
+  <section class="alertbar" id="alertbar" aria-label="Avisos de turno">
+    <div class="field">
+      <label for="alert-team">Avisar del</label>
+      <select id="alert-team">
+        <option value="0">Todos los equipos</option>
+        <option value="1">Equipo 1</option>
+        <option value="2" selected>Equipo 2</option>
+        <option value="3">Equipo 3</option>
+      </select>
+    </div>
+    <button type="button" id="alert-btn" class="install">Activar avisos</button>
+    <button type="button" id="alert-test" class="link">Probar aviso</button>
+    <p class="alert-status" id="alert-status" aria-live="polite"></p>
+  </section>
 
   <nav class="tabs" role="tablist" aria-label="Vistas">
     <button class="tab" type="button" role="tab" id="tab-grid" data-tab="grid" aria-controls="view-grid" aria-selected="true">Grilla</button>
@@ -359,7 +395,10 @@ table.grid { --who: 330px; border-collapse: separate; border-spacing: 0; table-l
               <option value="3">Equipo 3</option>
             </select>
           </div>
-          <input class="search" id="q" type="search" placeholder="Buscar persona o cargo" aria-label="Buscar persona o cargo" autocomplete="off">
+          <div class="field search-field">
+            <label for="q">Buscar funcionario</label>
+            <input class="search" id="q" name="q" type="search" inputmode="search" enterkeyhint="search" placeholder="Nombre o cargo" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+          </div>
         </div>
         <div class="keys" aria-hidden="true">
           <span><i class="sw D"></i>Turno de día</span>
@@ -584,6 +623,196 @@ var ROTA = (function () {
     el.innerHTML = html;
   }
 
+  /* ---------- Avisos de turno (30 min antes de entrar y de salir) ---------- */
+  var ALERT_MIN = 30;
+  var GRACE_MIN = 25;
+  var alertTeamSaved = parseInt(store.get('rota.alertTeam'), 10);
+  var alertState = {
+    on: store.get('rota.alert') === '1',
+    team: (alertTeamSaved >= 0 && alertTeamSaved <= R.teams.length) ? alertTeamSaved : 2
+  };
+  var firedMem = {};
+  var pending = [];
+  var audioCtx = null;
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function absNow(c) {
+    var ym = c.y * 12 + c.m, base = 2026 * 12 + 10;
+    if (ym === base) return (c.d - 1) * 24 + c.h + c.min / 60;
+    if (ym === base + 1) return R.days * 24 + (c.d - 1) * 24 + c.h + c.min / 60;
+    return null;
+  }
+  function atHM(abs) {
+    var d = Math.floor(abs / 24) + 1, h = abs - (d - 1) * 24;
+    var hh = Math.floor(h + 1e-9), mm = Math.round((h - hh) * 60);
+    if (mm === 60) { hh += 1; mm = 0; }
+    var lbl = d > R.days ? (d - R.days) + ' nov' : shortDay(d).toLowerCase();
+    return lbl + ' a las ' + pad2(hh) + ':' + pad2(mm);
+  }
+  function firedGet(k) {
+    if (firedMem[k]) return true;
+    try { return localStorage.getItem('rota.fired.' + k) === '1'; } catch (e) { return false; }
+  }
+  function firedSet(k) {
+    firedMem[k] = true;
+    try { localStorage.setItem('rota.fired.' + k, '1'); } catch (e) {}
+  }
+  function alertEvents(teamSel) {
+    var ev = [];
+    allShifts().forEach(function (x) {
+      if (teamSel && x.team !== teamSel) return;
+      ev.push({ key: x.team + '-' + x.d + '-ini', type: 'ini', t: x.a - ALERT_MIN / 60, target: x.a, x: x });
+      ev.push({ key: x.team + '-' + x.d + '-fin', type: 'fin', t: x.b - ALERT_MIN / 60, target: x.b, x: x });
+    });
+    return ev;
+  }
+  function alertText(ev, mins) {
+    var x = ev.x, r = relayOf(x.team, x.d);
+    if (ev.type === 'fin') {
+      return {
+        title: 'Faltan ' + mins + ' minutos: termina el turno del Equipo ' + x.team,
+        body: 'El turno ' + x.s.code + ' (' + x.s.label + ') termina a las ' + R.fmt(x.s.end) + '.' + (r && r.next ? ' Lo releva el Equipo ' + r.next.team + ', ' + atHM(r.next.a) + '.' : '')
+      };
+    }
+    return {
+      title: 'En ' + mins + ' minutos comienza el turno del Equipo ' + x.team,
+      body: 'El turno ' + x.s.code + ' (' + x.s.label + ') entra a las ' + R.fmt(x.s.start) + '.' + (r && r.prev ? ' Releva al Equipo ' + r.prev.team + '.' : '')
+    };
+  }
+  function unlockAudio() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audioCtx = audioCtx || new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) {}
+  }
+  function beep() {
+    try {
+      unlockAudio();
+      if (!audioCtx) return;
+      [0, 0.35, 0.7].forEach(function (off) {
+        var t0 = audioCtx.currentTime + off, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.value = 880;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(t0);
+        o.stop(t0 + 0.3);
+      });
+    } catch (e) {}
+  }
+  function notify(msg, tag) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    var opts = { body: msg.body, tag: tag || 'rotativa', renotify: true, requireInteraction: true, vibrate: [300, 150, 300] };
+    function fallback() { try { new Notification(msg.title, opts); } catch (e) {} }
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (reg && reg.showNotification) reg.showNotification(msg.title, opts); else fallback();
+        }).catch(fallback);
+      } else { fallback(); }
+    } catch (e) { fallback(); }
+  }
+  function showAlerts(list) {
+    pending = pending.concat(list);
+    var h = '';
+    pending.forEach(function (m) { h += '<div class="ap-item"><strong>' + m.title + '</strong><span>' + m.body + '</span></div>'; });
+    var pop = $('#alertpop');
+    pop.innerHTML = '<div class="ap-list">' + h + '</div><button type="button" class="alert-close" id="alert-close">Entendido</button>';
+    pop.hidden = false;
+    try { if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {}
+    beep();
+    list.forEach(function (m, i) { notify(m, 'rotativa-' + Date.now() + '-' + i); });
+  }
+  function checkAlerts(simAbs) {
+    if (!alertState.on) return [];
+    var abs = simAbs != null ? simAbs : absNow(chileNow());
+    if (abs == null) return [];
+    var fired = [];
+    alertEvents(alertState.team).forEach(function (ev) {
+      if (abs >= ev.t && abs < ev.t + GRACE_MIN / 60 && !firedGet(ev.key)) {
+        firedSet(ev.key);
+        fired.push(alertText(ev, Math.max(1, Math.round((ev.target - abs) * 60))));
+      }
+    });
+    if (fired.length) showAlerts(fired);
+    return fired;
+  }
+  function nextAlertText() {
+    var abs = absNow(chileNow());
+    if (abs == null) return '';
+    var best = null;
+    alertEvents(alertState.team).forEach(function (ev) {
+      if (ev.t > abs && !firedGet(ev.key) && (!best || ev.t < best.t)) best = ev;
+    });
+    if (!best) return 'No quedan más avisos en esta rotativa.';
+    return 'Próximo aviso: ' + atHM(best.t) + ' (' + (best.type === 'fin' ? 'término' : 'inicio') + ' del turno del Equipo ' + best.x.team + ').';
+  }
+  function renderAlertBar() {
+    var btn = $('#alert-btn'), st = $('#alert-status');
+    if (!btn || !st) return;
+    btn.textContent = alertState.on ? 'Desactivar avisos' : 'Activar avisos';
+    btn.className = 'install' + (alertState.on ? ' on' : '');
+    $('#alert-team').value = String(alertState.team);
+    var who = alertState.team ? 'el Equipo ' + alertState.team : 'todos los equipos';
+    var whoDe = alertState.team ? 'del Equipo ' + alertState.team : 'de todos los equipos';
+    var perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+    var txt;
+    if (!alertState.on) {
+      txt = 'Activa los avisos para recibir una alerta 30 minutos antes de que comience y 30 minutos antes de que termine cada turno ' + whoDe + '.';
+    } else {
+      txt = 'Avisos activos para ' + who + '. ' + nextAlertText() + ' ';
+      if (perm === 'granted') txt += 'Se muestran en pantalla y como notificación del teléfono.';
+      else if (perm === 'denied') txt += 'Las notificaciones del teléfono están bloqueadas para este sitio: solo verás el aviso dentro de la app.';
+      else if (perm === 'default') txt += 'Falta permitir las notificaciones cuando el navegador lo pida.';
+      else txt += 'Este navegador no admite notificaciones: verás el aviso dentro de la app.';
+      txt += ' Los avisos se emiten mientras la app esté abierta; si la cierras o el teléfono la suspende, no suenan.';
+    }
+    st.textContent = txt;
+  }
+  $('#alert-btn').addEventListener('click', function () {
+    if (!alertState.on) {
+      alertState.on = true;
+      store.set('rota.alert', '1');
+      unlockAudio();
+      if ('Notification' in window && Notification.permission === 'default') {
+        try {
+          var pr = Notification.requestPermission(function () { renderAlertBar(); });
+          if (pr && pr.then) pr.then(renderAlertBar);
+        } catch (e) {}
+      }
+      checkAlerts();
+    } else {
+      alertState.on = false;
+      store.set('rota.alert', '0');
+    }
+    renderAlertBar();
+  });
+  $('#alert-team').addEventListener('change', function (e) {
+    alertState.team = +e.target.value;
+    store.set('rota.alertTeam', String(alertState.team));
+    renderAlertBar();
+    checkAlerts();
+  });
+  $('#alert-test').addEventListener('click', function () {
+    unlockAudio();
+    if ('Notification' in window && Notification.permission === 'default') {
+      try { var pr = Notification.requestPermission(function () { renderAlertBar(); }); if (pr && pr.then) pr.then(renderAlertBar); } catch (e) {}
+    }
+    showAlerts([{ title: 'Aviso de prueba: así se verá la alerta', body: 'Si ves esto, oyes el sonido y sientes la vibración, los avisos funcionan en este dispositivo.' }]);
+  });
+  $('#alertpop').addEventListener('click', function (e) {
+    if (e.target.closest('#alert-close')) { pending = []; $('#alertpop').hidden = true; $('#alertpop').innerHTML = ''; }
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) { renderNow(); checkAlerts(); renderAlertBar(); }
+  });
+  window.__rotativa = { checkAlerts: checkAlerts, alertEvents: alertEvents };
+
   /* ---------- Grid ---------- */
   function rowHTML(p) {
     var cells = '';
@@ -679,7 +908,9 @@ var ROTA = (function () {
     if (th && wrap.scrollWidth > wrap.clientWidth) wrap.scrollLeft = Math.max(0, th.offsetLeft - wrap.clientWidth / 2);
   }
 
-  $('#q').addEventListener('input', function () { renderGrid(); });
+  ['input', 'keyup', 'change', 'search'].forEach(function (evt) {
+    $('#q').addEventListener(evt, function () { renderGrid(); });
+  });
   $('#team-select').addEventListener('change', function (e) {
     state.team = +e.target.value;
     store.set('rota.team', String(state.team));
@@ -869,7 +1100,10 @@ var ROTA = (function () {
   renderDetail();
   renderLegend();
   renderNow();
-  setInterval(renderNow, 60000);
+  renderAlertBar();
+  checkAlerts();
+  setInterval(function () { renderNow(); checkAlerts(); }, 15000);
+  setInterval(renderAlertBar, 60000);
   setTab(state.tab);
 })();
 </script>

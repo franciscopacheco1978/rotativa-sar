@@ -1,4 +1,14 @@
-var CACHE = 'rotativa-sar-v1';
+var CACHE = 'rotativa-sar-v2';
+
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      if (list.length) return list[0].focus();
+      return self.clients.openWindow('./');
+    })
+  );
+});
 var ASSETS = ['./', 'index.html', 'manifest.json'];
 
 self.addEventListener('install', function (e) {
