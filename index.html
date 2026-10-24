@@ -291,6 +291,16 @@ table.grid { --who: 330px; border-collapse: separate; border-spacing: 0; table-l
 .now::after { content: "Ahora"; position: absolute; top: -2px; left: 5px; font-size: .7rem; font-weight: 600; color: var(--ink); background: var(--bg); padding: 0 3px; border-radius: 3px; }
 .cover { margin: 2px 0 0; color: var(--muted); font-size: .9rem; }
 
+td.d.aus, .cc.aus { background: #fde1e1 !important; color: #b3261e !important; box-shadow: inset 0 0 0 2px #d10000; text-decoration: line-through; font-weight: 700; }
+td.d.rem, .cc.rem { box-shadow: inset 0 0 0 2px #1f5fbf; }
+.pill.aus { background: #fde1e1; color: #b3261e; border-color: transparent; }
+.pill.rem { background: #e1ecfb; color: #1f5fbf; border-color: transparent; }
+.ausbox { margin-top: 14px; border-left: 4px solid #d10000; }
+.ausbox ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ausbox li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.ausbox .arrow { color: var(--muted); }
+.aus-line { margin: 6px 0 0; font-size: .9rem; }
+#aus-note { font-size: .8rem; color: var(--muted); }
 .shifts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
 .shift header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .shift h3 { margin: 0; font-size: 1.25rem; letter-spacing: .05em; color: var(--ink); }
@@ -442,7 +452,8 @@ table.grid { --who: 330px; border-collapse: separate; border-spacing: 0; table-l
     <p>Hecho con HTML (estructura), CSS (diseño) y JavaScript (funciones). Funciona directamente en el navegador, sin servidor ni base de datos. Tipografías: Barlow y Barlow Condensed, de Google Fonts.</p>
     <p>Datos transcritos de la rotativa impresa de octubre 2026, SAR Pedro de Valdivia.</p>
     <p><strong>Versión de consulta.</strong> La rotativa oficial es la impresa. Ante cualquier diferencia o duda, consulta a tu jefatura.</p>
-    <p>Última actualización: 10 de octubre de 2026.</p>
+    <p>Última actualización de turnos: 10 de octubre de 2026.</p>
+    <p id="aus-note"></p>
     <p>Para usarla como app: en Android abre el menú ⋮ y toca "Instalar app"; en iPhone, con Safari, toca Compartir y "Agregar a inicio".</p>
   </footer>
 </div>
@@ -505,6 +516,57 @@ var ROTA = (function () {
   }
   var cn = chileNow();
   var today = (cn.y === 2026 && cn.m === 10) ? cn.d : null;
+
+  /* ---------- Ausencias y reemplazos (vienen de la planilla de ausentismos) ---------- */
+  /* Pega aquí la URL de la aplicación web de Apps Script (termina en /exec). Vacío = función apagada. */
+  var AUS_URL = '';
+  var AUS = {};      /* AUS[dia] = [{func, cargo, ini, fin, reemp}] */
+  var ausLoaded = '';
+  function normName(x) { return String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\(.*?\)/g, '').replace(/[^a-zA-Z ]/g, '').replace(/\s+/g, ' ').trim().toUpperCase(); }
+  function applyAus(data) {
+    AUS = {};
+    var pre = '2026-10-';
+    ((data && data.ausencias) || []).forEach(function (a) {
+      if (!a || String(a.f).slice(0, 8) !== pre) return;
+      var d = parseInt(String(a.f).slice(8, 10), 10);
+      (AUS[d] = AUS[d] || []).push(a);
+    });
+    ausLoaded = (data && data.actualizado) || '';
+  }
+  function ausOf(p, d) {
+    var n = normName(p.name), r = null;
+    (AUS[d] || []).forEach(function (a) { if (normName(a.func) === n) r = a; });
+    return r;
+  }
+  function remOf(p, d) {
+    var n = normName(p.name), r = null;
+    (AUS[d] || []).forEach(function (a) { if (normName(a.reemp) === n) r = a; });
+    return r;
+  }
+  function reempTxt(a) { var r = String(a.reemp || '').trim(); return (!r || /^no se cubre$/i.test(r)) ? 'sin reemplazo' : 'reemplaza ' + r; }
+  function ausLine(p, d) {
+    var a = ausOf(p, d), r = remOf(p, d), h = '';
+    if (a) h += '<p class="aus-line"><span class="pill aus">Ausente</span> ' + (a.ini ? a.ini + ' – ' + a.fin + ' · ' : '') + esc(reempTxt(a)) + '</p>';
+    if (r) h += '<p class="aus-line"><span class="pill rem">Reemplaza</span> a ' + esc(r.func) + (r.ini ? ' · ' + r.ini + ' – ' + r.fin : '') + '</p>';
+    return h;
+  }
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function ausNote() {
+    var el = $('#aus-note'); if (!el) return;
+    if (!AUS_URL) { el.textContent = ''; return; }
+    el.textContent = ausLoaded ? 'Ausencias y reemplazos actualizados desde la planilla: ' + ausLoaded + '.' : 'No se pudieron cargar las ausencias: se muestra solo la rotativa.';
+  }
+  function loadAus() {
+    if (!AUS_URL) return;
+    var cached = store.get('rota.aus');
+    if (cached) { try { applyAus(JSON.parse(cached)); } catch (e) {} }
+    fetch(AUS_URL, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.ausencias) throw new Error('formato');
+      store.set('rota.aus', JSON.stringify(j)); applyAus(j);
+    }).catch(function () { /* se queda con lo último guardado */ }).then(function () {
+      ausNote(); renderGrid(); renderDetail(); renderDay(); renderMe();
+    });
+  }
 
   var people = [];
   R.teams.forEach(function (t) {
@@ -818,8 +880,10 @@ var ROTA = (function () {
     var cells = '';
     for (var d = 1; d <= R.days; d++) {
       var s = R.shiftOf(p.team, d);
-      var cls = 'd ' + dayCls(d) + (s ? ' has s' + s.kind : '') + (state.focus === p.id && state.picked === d ? ' pick' : '');
-      cells += '<td class="' + cls + '" data-d="' + d + '">' + (s ? s.code : '') + '</td>';
+      var ax = ausOf(p, d), rx = remOf(p, d);
+      var cls = 'd ' + dayCls(d) + (s ? ' has s' + s.kind : '') + (ax ? ' aus' : '') + (rx ? ' rem' : '') + (state.focus === p.id && state.picked === d ? ' pick' : '');
+      var tt = ax ? ' title="Ausente · ' + esc(reempTxt(ax)) + '"' : (rx ? ' title="Reemplaza a ' + esc(rx.func) + '"' : '');
+      cells += '<td class="' + cls + '" data-d="' + d + '"' + tt + '>' + (s ? s.code : (rx ? '+' : '')) + '</td>';
     }
     return '<tr data-p="' + p.id + '"' + (state.focus === p.id ? ' class="sel"' : '') + '>' +
       '<th scope="row" class="c-who"><button type="button" class="who" data-who="' + p.id + '"><span class="nm">' + p.name + '</span><span class="rl">' + p.role + '</span></button></th>' +
@@ -864,7 +928,7 @@ var ROTA = (function () {
       html += '<div class="dline"><strong>' + cap(DOWL[dow(state.picked)]) + ' ' + state.picked + ' de octubre</strong>' +
         (state.picked === today ? '<span class="pill today">Hoy</span>' : '') +
         (s ? '<span class="pill ' + s.kind + '">Turno de ' + (s.kind === 'D' ? 'día' : 'noche') + '</span>' : '<span class="pill">Libre</span>') + '</div>' +
-        shiftDetail(p.team, state.picked);
+        shiftDetail(p.team, state.picked) + ausLine(p, state.picked);
     }
     el.innerHTML = html;
   }
@@ -997,6 +1061,15 @@ var ROTA = (function () {
       html += '<p class="carry-note"><span class="tb t' + g.team + '">' + g.team + '</span>El Equipo ' + g.team + ' termina a las 08:00 el turno de noche que empezó el ' + shortDay(d - 1).toLowerCase() + '.</p>';
     });
 
+    var al = AUS[d] || [];
+    if (al.length) {
+      html += '<article class="card ausbox"><h3>Ausencias y reemplazos del día (' + al.length + ')</h3><ul>';
+      al.forEach(function (a) {
+        html += '<li><b>' + esc(a.func) + '</b><span class="muted">' + esc(a.cargo) + (a.ini ? ' · ' + a.ini + ' – ' + a.fin : '') + '</span><span class="arrow">→</span>' +
+          (/^no se cubre$/i.test(String(a.reemp || '').trim()) || !a.reemp ? '<span class="pill aus">Sin reemplazo</span>' : '<span class="pill rem">' + esc(a.reemp) + '</span>') + '</li>';
+      });
+      html += '</ul></article>';
+    }
     $('#day-body').innerHTML = html;
   }
 
@@ -1022,7 +1095,7 @@ var ROTA = (function () {
     return '<div class="dline">' + (label ? '<span class="muted">' + label + '</span>' : '') +
       '<strong>' + cap(DOWL[dow(d)]) + ' ' + d + ' de octubre</strong>' + (d === today ? '<span class="pill today">Hoy</span>' : '') +
       (s ? '<span class="pill ' + s.kind + '">Turno de ' + (s.kind === 'D' ? 'día' : 'noche') + '</span>' : '<span class="pill">Libre</span>') + '</div>' +
-      shiftDetail(p.team, d);
+      shiftDetail(p.team, d) + ausLine(p, d);
   }
 
   function renderMe() {
@@ -1045,7 +1118,7 @@ var ROTA = (function () {
     for (var b = 0; b < R.firstDow; b++) cal += '<span class="cc blank" aria-hidden="true"></span>';
     for (var d = 1; d <= R.days; d++) {
       var s = R.shiftOf(p.team, d);
-      cal += '<button type="button" class="cc ' + (s ? s.kind : '') + (isWk(d) ? ' wk' : '') + (R.holidays[d] ? ' hol' : '') + (d === today ? ' today' : '') + (state.mePick === d ? ' pick' : '') + '" data-md="' + d + '" title="' + dayTitle(d) + '"><span class="n">' + d + '</span><span class="c">' + (s ? s.code : '') + '</span></button>';
+      cal += '<button type="button" class="cc ' + (s ? s.kind : '') + (isWk(d) ? ' wk' : '') + (R.holidays[d] ? ' hol' : '') + (d === today ? ' today' : '') + (ausOf(p, d) ? ' aus' : '') + (remOf(p, d) ? ' rem' : '') + (state.mePick === d ? ' pick' : '') + '" data-md="' + d + '" title="' + dayTitle(d) + '"><span class="n">' + d + '</span><span class="c">' + (s ? s.code : '') + '</span></button>';
     }
     $('#cal').innerHTML = cal;
 
@@ -1105,6 +1178,7 @@ var ROTA = (function () {
   setInterval(function () { renderNow(); checkAlerts(); }, 15000);
   setInterval(renderAlertBar, 60000);
   setTab(state.tab);
+  loadAus();
 })();
 </script>
 <script>
