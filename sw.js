@@ -1,4 +1,4 @@
-var CACHE = 'rotativa-sar-v2';
+var CACHE = 'rotativa-sar-v3';
 
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();

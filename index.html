@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Rotativa">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+.install.share-wa{display:inline-flex;align-items:center;gap:7px;text-decoration:none;background:#25D366;color:#06301a;margin-left:8px;min-height:36px}.install.share-wa:hover{filter:brightness(1.06)}.share-wa svg{width:18px;height:18px;fill:currentColor;flex:none}.share-wa.copied::after{content:" ✓ copiado";text-transform:none;letter-spacing:0}
 .install{appearance:none;padding:7px 14px;border:0;border-radius:8px;background:var(--accent);color:var(--bg);font-family:var(--font-display);font-weight:600;font-size:1rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}</style>
 <title>Rotativa de Turnos 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -387,6 +388,7 @@ td.d.rem, .cc.rem { box-shadow: inset 0 0 0 2px #1f5fbf; }
       <span class="month-note">182 h por persona · 3 equipos de 9</span>
       <button type="button" id="refresh-btn" class="install" style="display:inline-block">↻ Actualizar</button>
       <button type="button" id="install-btn" class="install" hidden>Instalar app</button>
+      <a id="wa-share" class="install share-wa" href="https://wa.me/" target="_blank" rel="noopener noreferrer" aria-label="Compartir la aplicación por WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2a9.9 9.9 0 0 0-8.5 14.9L2 22l5.25-1.38A9.9 9.9 0 1 0 12.04 2Zm0 18.1a8.2 8.2 0 0 1-4.18-1.14l-.3-.18-3.1.82.83-3.02-.2-.31a8.2 8.2 0 1 1 6.95 3.83Zm4.5-6.14c-.25-.12-1.46-.72-1.69-.8-.23-.09-.39-.12-.56.12-.16.25-.64.8-.78.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-2-1.24a7.5 7.5 0 0 1-1.38-1.72c-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.41-.56-.42h-.47c-.16 0-.43.06-.65.31-.23.25-.86.84-.86 2.05 0 1.2.88 2.37 1 2.54.12.16 1.73 2.64 4.2 3.7.59.26 1.05.41 1.4.52.59.19 1.13.16 1.55.1.47-.07 1.46-.6 1.66-1.17.2-.58.2-1.07.14-1.17-.06-.1-.23-.16-.47-.28Z"/></svg><span>Compartir</span></a>
     </div>
   </header>
 
@@ -1251,6 +1253,19 @@ var ROTA = (function () {
     if (!deferred) return;
     deferred.prompt();
     deferred.userChoice.then(function () { deferred = null; btn.hidden = true; });
+  });
+})();
+
+/* ---- Compartir por WhatsApp ---- */
+(function () {
+  var a = document.getElementById('wa-share');
+  if (!a) return;
+  var url = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : 'https://franciscopacheco1978.github.io/rotativa-sar/';
+  var msg = 'Rotativa de turnos SAR Pedro de Valdivia 2026: mira tu turno, el calendario y los avisos desde el celular.\n' + url;
+  a.href = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  a.addEventListener('click', function () {
+    // Respaldo: además copia el enlace por si WhatsApp no abre (por ejemplo, sin la aplicación instalada).
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { a.classList.add('copied'); setTimeout(function () { a.classList.remove('copied'); }, 2500); }, function () {}); } catch (e) {}
   });
 })();
 </script>
