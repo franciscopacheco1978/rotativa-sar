@@ -545,9 +545,11 @@ var ROTA = (function () {
   }
   function reempTxt(a) { var r = String(a.reemp || '').trim(); return (!r || /^no se cubre$/i.test(r)) ? 'sin reemplazo' : 'reemplaza ' + r; }
   function ausLine(p, d) {
-    var a = ausOf(p, d), r = remOf(p, d), h = '';
-    if (a) h += '<p class="aus-line"><span class="pill aus">Ausente</span> ' + (a.ini ? a.ini + ' – ' + a.fin + ' · ' : '') + esc(reempTxt(a)) + '</p>';
-    if (r) h += '<p class="aus-line"><span class="pill rem">Reemplaza</span> a ' + esc(r.func) + (r.ini ? ' · ' + r.ini + ' – ' + r.fin : '') + '</p>';
+    var n = normName(p.name), h = '';
+    (AUS[d] || []).forEach(function (a) {
+      if (normName(a.func) === n) h += '<p class="aus-line"><span class="pill aus">Ausente</span> ' + (a.ini ? a.ini + ' – ' + a.fin + ' · ' : '') + esc(reempTxt(a)) + '</p>';
+      if (normName(a.reemp) === n) h += '<p class="aus-line"><span class="pill rem">Reemplaza</span> a ' + esc(a.func) + (a.ini ? ' · ' + a.ini + ' – ' + a.fin : '') + '</p>';
+    });
     return h;
   }
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
