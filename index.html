@@ -519,7 +519,7 @@ var ROTA = (function () {
 
   /* ---------- Ausencias y reemplazos (vienen de la planilla de ausentismos) ---------- */
   /* Pega aquí la URL de la aplicación web de Apps Script (termina en /exec). Vacío = función apagada. */
-  var AUS_URL = '';
+  var AUS_URL = 'https://script.google.com/macros/s/AKfycbwmGgqTQX2TNa6WME_eGWSibDAB97ZRRmjoiZ17nrQxqYnYj8Wx0Q4ukXzIwS5SHkgH/exec';
   var AUS = {};      /* AUS[dia] = [{func, cargo, ini, fin, reemp}] */
   var ausLoaded = '';
   function normName(x) { return String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\(.*?\)/g, '').replace(/[^a-zA-Z ]/g, '').replace(/\s+/g, ' ').trim().toUpperCase(); }
