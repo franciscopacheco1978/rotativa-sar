@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#086d69">
+<meta name="robots" content="noindex,nofollow">
+<title>Calendario de Turnos · SAR Pedro de Valdivia</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#173d3c;background:#eef6f5}
+*{box-sizing:border-box}body{margin:0}.shell{max-width:1400px;margin:auto;padding:22px}
+header{background:linear-gradient(120deg,#07514e,#087c76);color:#fff;border-radius:20px;padding:25px 28px;box-shadow:0 10px 25px #0b514d25}
+.eyebrow{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.85}h1{font-size:clamp(26px,4vw,38px);margin:0 0 7px;line-height:1.12}header p:last-child{margin:0;opacity:.85}
+.notice{background:#e0f1ee;border-left:4px solid #0a7b75;padding:13px 16px;border-radius:10px;margin:18px 0;font-size:14px;line-height:1.5}
+.controls{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin:18px 0}label{font-weight:650;font-size:13px;display:block;margin:0 0 6px}
+.control{flex:1 1 190px}input,select{width:100%;border:1px solid #afcac7;background:#fff;border-radius:10px;padding:12px;font:inherit;color:#193e3c}
+input:focus,select:focus{outline:3px solid #9adad5}
+button{border:0;border-radius:10px;padding:12px 16px;background:#0b6f6b;color:#fff;font:700 14px system-ui;cursor:pointer}
+button:focus{outline:3px solid #7fd0c9;outline-offset:2px}
+.legend{display:flex;gap:15px;flex-wrap:wrap;font-size:13px;color:#4c6a68;margin:10px 0 18px}.dot{width:13px;height:13px;display:inline-block;border-radius:4px;vertical-align:middle;margin-right:4px}
+.day{background:#d6f1e6}.night{background:#d8e8ff}.off{background:#f0f4f4}
+.card{border:1px solid #c8dddb;background:#fff;border-radius:15px;overflow:hidden;box-shadow:0 4px 14px #124a4812}
+.tablewrap{overflow:auto;max-height:75vh}table{border-collapse:separate;border-spacing:0;min-width:1190px;width:100%;font-size:12px}
+th,td{border-right:1px solid #e5eeed;border-bottom:1px solid #e5eeed;padding:8px 5px;text-align:center;min-width:31px}
+thead th{position:sticky;top:0;background:#e7f0ef;z-index:2;color:#345b59;white-space:nowrap}
+th.person{position:sticky;left:0;z-index:3;background:#fff;min-width:190px;max-width:190px;text-align:left;padding:8px 10px;box-shadow:2px 0 5px #0e4b4814}
+thead th.person{z-index:4;background:#e7f0ef}
+tbody tr:hover th.person{background:#f0faf8}tbody tr:hover td{filter:brightness(.98)}
+th.person small{display:block;color:#667e7c;margin-top:4px;font-weight:400}
+td.D{background:#dcf4e9;color:#166149;font-weight:750}td.N{background:#dceaff;color:#214c86;font-weight:750}
+td.weekend{border-left:1px solid #c4d1d0}th.weekend{background:#d9e4e3}
+.teamrow th{background:#0a706a!important;color:#fff;text-align:left;position:relative;left:auto;font-size:13px;padding:9px 12px}
+.empty{padding:25px;text-align:center;color:#56716f}
+.summary{margin-top:12px;color:#5a7472;font-size:13px}footer{font-size:12px;color:#607a77;text-align:center;margin:24px 0}
+@media(max-width:650px){.shell{padding:10px}header{padding:20px}.tablewrap{max-height:70vh}.controls{gap:8px}}
+@media print{body{background:#fff}.shell{padding:0}header{box-shadow:none}.controls,button,.notice{display:none}.tablewrap{max-height:none;overflow:visible}table{font-size:8px;min-width:0}th.person{min-width:120px;max-width:120px}th,td{padding:3px 1px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header><p class="eyebrow">SAR Pedro de Valdivia · Vista funcionarios</p><h1>Calendario de turnos</h1><p>Octubre 2026 · Todos los equipos · Solo consulta</p></header>
+<div class="notice">Esta vista permite consultar los turnos de todos los funcionarios. No incluye funciones de edición ni información de ausencias o permisos. Los datos corresponden a la rotativa publicada para octubre de 2026.</div>
+<div class="controls">
+<div class="control"><label for="team">Filtrar equipo</label><select id="team"><option value="0">Todos los equipos</option><option value="1">Equipo 1</option><option value="2">Equipo 2</option><option value="3">Equipo 3</option></select></div>
+<div class="control"><label for="search">Buscar funcionario</label><input id="search" type="search" placeholder="Nombre o cargo" autocomplete="off"></div>
+<button type="button" id="print">Imprimir calendario</button>
+</div>
+<div class="legend"><span><i class="dot day"></i> Turno de día (D)</span><span><i class="dot night"></i> Turno de noche (N)</span><span><i class="dot off"></i> Sin turno</span><span>Desliza la tabla horizontalmente en el celular</span></div>
+<div class="card"><div class="tablewrap"><table aria-label="Calendario completo de turnos de octubre 2026"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></div>
+<p class="summary" id="summary" aria-live="polite"></p>
+<footer>Rotativa SAR · Vista de consulta para funcionarios · Octubre 2026</footer>
+</div>
+<script>
+
+var ROTA = (function () {
+  var N15 = [15, 'N'];
+  var roles = ['Enfermera', 'TENS', 'TENS', 'TENS Clínica / Apoyo Farm', 'TENS Farmacia', 'TENS Traslados', 'Conductor', 'Administrativo Admisión', 'Tec. Médico'];
+  var teams = [
+    {
+      id: 1,
+      names: ['Consuelo Fuentes', 'Victor Astudillo', 'Yesenia Arriagada', 'Cecilia Silva', 'Jenny Alvarez', 'Karina Zavala', 'Cristian Montero', 'Elsa Jaramillo', 'Felipe Arriagada'],
+      shifts: { 3: [13, 'D'], 4: [13, 'D'], 6: N15, 9: N15, 12: N15, 15: N15, 17: [12, 'N'], 18: [12, 'N'], 21: N15, 24: [13, 'D'], 25: [14, 'D'], 27: N15, 30: N15 }
+    },
+    {
+      id: 2,
+      names: ['Carolina Arancibia', 'Elizabeth Contreras', 'Alexis Cortes', 'Marianela González', 'Marcia Arias', 'Ximena Saez', 'Mario Vasquez', 'Francisco Pacheco', 'Laura Castillo'],
+      shifts: { 1: N15, 3: [11, 'N'], 4: [11, 'N'], 7: N15, 10: [11, 'D'], 11: [11, 'D'], 13: N15, 16: N15, 19: N15, 22: N15, 24: [11, 'N'], 25: [10, 'N'], 28: N15, 31: [12, 'D'] }
+    },
+    {
+      id: 3,
+      names: ['Ninoska Valenzuela', 'Augusto Coilla', 'Daniela Saldaña', 'Maritza Vasquez', 'Karen Santibañez', 'Ignacio Valdebenito', 'Victor Parra', 'Victor Pardo (R)', 'Javier Moraga'],
+      shifts: { 2: N15, 5: N15, 8: N15, 10: [13, 'N'], 11: [13, 'N'], 14: N15, 17: [12, 'D'], 18: [12, 'D'], 20: N15, 23: N15, 26: N15, 29: N15, 31: [12, 'N'] }
+    }
+  ];
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmt(h) { return pad(h % 24) + ':00'; }
+  function info(c, k) {
+    var start = k === 'D' ? 8 : 32 - c;
+    var end = k === 'D' ? 8 + c : 8;
+    return { code: c, kind: k, start: start, end: end, hours: c, label: fmt(start) + ' – ' + fmt(end) };
+  }
+  function shiftOf(team, d) { var s = teams[team - 1].shifts[d]; return s ? info(s[0], s[1]) : null; }
+  function hoursOf(team) { var t = teams[team - 1].shifts, sum = 0; for (var k in t) { sum += t[k][0]; } return sum; }
+  return { days: 31, firstDow: 3, holidays: { 12: 'Encuentro de Dos Mundos', 31: 'Día Nacional de las Iglesias Evangélicas y Protestantes' }, roles: roles, teams: teams, info: info, shiftOf: shiftOf, hoursOf: hoursOf, fmt: fmt };
+})();
+
+</script>
+<script>
+(function(){
+'use strict';
+var teamSelect=document.getElementById('team');
+var search=document.getElementById('search');
+var head=document.getElementById('thead');
+var body=document.getElementById('tbody');
+var summary=document.getElementById('summary');
+var days=['J','V','S','D','L','M','M','J','V','S','D','L','M','M','J','V','S','D','L','M','M','J','V','S','D','L','M','M','J','V','S'];
+function cell(tag,text,cls){var e=document.createElement(tag);e.textContent=text||'';if(cls)e.className=cls;return e}
+function render(){
+var tr=document.createElement('tr');tr.appendChild(cell('th','Funcionario / día','person'));
+for(var d=1;d<=31;d++){var th=cell('th',String(d)+' '+days[d-1],((d+2)%7===0||(d+2)%7===1)?'weekend':'');th.scope='col';tr.appendChild(th)}
+head.replaceChildren(tr);body.replaceChildren();
+var query=search.value.trim().toLocaleLowerCase('es');var selected=Number(teamSelect.value);var n=0;
+ROTA.teams.forEach(function(team){
+if(selected&&team.id!==selected)return;
+var items=team.names.map(function(name,i){return {name:name,role:ROTA.roles[i]}}).filter(function(p){return !query||(p.name+' '+p.role).toLocaleLowerCase('es').includes(query)});
+if(!items.length)return;
+var group=document.createElement('tr');group.className='teamrow';var gh=cell('th','Equipo '+team.id);gh.colSpan=32;group.appendChild(gh);body.appendChild(group);
+items.forEach(function(p){
+var row=document.createElement('tr');var who=cell('th',p.name,'person');who.scope='row';var role=cell('small',p.role);who.appendChild(role);row.appendChild(who);
+for(var d=1;d<=31;d++){var shift=ROTA.shiftOf(team.id,d);var td=cell('td',shift?String(shift.code)+shift.kind:'',shift?shift.kind:'');td.title=shift?shift.label:'Sin turno';row.appendChild(td)}
+body.appendChild(row);n++;
+});
+});
+if(!n){var er=document.createElement('tr');var msg=cell('td','No se encontraron funcionarios','empty');msg.colSpan=32;er.appendChild(msg);body.appendChild(er)}
+summary.textContent=n+' funcionario'+(n===1?'':'s')+' en la vista · Calendario de octubre 2026';
+}
+teamSelect.addEventListener('change',render);search.addEventListener('input',render);document.getElementById('print').addEventListener('click',function(){window.print()});render();
+})();
+</script>
+</body></html>
