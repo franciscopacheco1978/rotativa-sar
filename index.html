@@ -414,7 +414,7 @@ html.sar-locked body > :not(#sar-lock-screen) { display:none !important; }
 <script id="sar-access-logic">
 (function () {
   var sessionKey = 'sar-access-v1';
-  var digest = 'c717b8101ace1dc1831db0a570f264f922950378261d1dd86d99f05c9b37deb4';
+  var expected = String.fromCharCode(67,65,82,76,65,65,66,85,82,84,79,50,48,50,54);
   var modal = document.getElementById('sar-lock-screen');
   var form = document.getElementById('sar-lock-card');
   var field = document.getElementById('sar-password');
@@ -439,17 +439,10 @@ html.sar-locked body > :not(#sar-lock-screen) { display:none !important; }
   field.focus();
   form.addEventListener('submit', async function (event) {
     event.preventDefault();
-    if (!crypto || !crypto.subtle) {
-      error.textContent = 'Este navegador no admite la verificación. Usa Safari o Chrome actualizado con HTTPS.';
-      return;
-    }
     button.disabled = true;
     error.textContent = '';
     try {
-      var bytes = new TextEncoder().encode('rotativa-sar-v1:' + field.value.trim());
-      var hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
-      var hex = Array.from(hash, function (b) { return b.toString(16).padStart(2,'0'); }).join('');
-      if (hex === digest) {
+      if (field.value.trim() === expected) {
         try { sessionStorage.setItem(sessionKey,'granted'); } catch(e) {}
         field.value = '';
         unlocked();
