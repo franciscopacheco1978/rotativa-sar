@@ -106,9 +106,9 @@ var ROTA = (function () {
 'use strict';
 var dutyDay=document.getElementById('duty-day');
 var dutyCards=document.getElementById('duty-cards');
-var chileDate=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-var parts=chileDate.split('-');
-var defaultDay=Number(parts[0])===2026&&Number(parts[1])===10?Number(parts[2]):1;
+var chileParts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Santiago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+var chileDate={};chileParts.forEach(function(p){chileDate[p.type]=p.value;});
+var defaultDay=Number(chileDate.year)===2026&&Number(chileDate.month)===10?Number(chileDate.day):1;
 for(var day=1;day<=31;day++){var option=document.createElement('option');option.value=String(day);option.textContent=day+' de octubre';dutyDay.appendChild(option)}
 dutyDay.value=String(defaultDay);
 function renderDuty(){
