@@ -41,7 +41,7 @@ td.weekend{border-left:1px solid #c4d1d0}th.weekend{background:#d9e4e3}
 .duty-card{border-radius:13px;padding:16px;background:#e4f4ef;border-left:4px solid #11866c}
 .duty-card.night{background:#e6effe;border-color:#467bc0}.duty-card h3{margin:5px 0;font-size:20px}
 .duty-card .tag{font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.08em;color:#466764}
-.duty-card p{margin:6px 0;font-size:13px;color:#315754}
+.duty-card p{margin:6px 0;font-size:13px;color:#315754}.duty-card .relief{font-weight:750;color:#174c49;padding-top:6px;border-top:1px solid #9ccac5}
 .duty-none{color:#607c79;font-size:14px;margin:10px 0 0}
 </style>
 </head>
@@ -111,21 +111,39 @@ var chileDate={};chileParts.forEach(function(p){chileDate[p.type]=p.value;});
 var defaultDay=Number(chileDate.year)===2026&&Number(chileDate.month)===10?Number(chileDate.day):1;
 for(var day=1;day<=31;day++){var option=document.createElement('option');option.value=String(day);option.textContent=day+' de octubre';dutyDay.appendChild(option)}
 dutyDay.value=String(defaultDay);
+function scheduledShifts(){
+  var list=[];
+  for(var d=1;d<=31;d++)ROTA.teams.forEach(function(t){
+    var shift=ROTA.shiftOf(t.id,d);
+    if(!shift)return;
+    // Minutos absolutos desde el inicio de octubre; los nocturnos terminan el día siguiente.
+    var begin=(d-1)*1440+shift.start*60;
+    var finish=(d-1)*1440+(shift.kind==='N'?1440+shift.end*60:shift.end*60);
+    list.push({day:d,team:t,shift:shift,begin:begin,finish:finish});
+  });
+  return list.sort(function(a,b){return a.begin-b.begin});
+}
+var allDuty=scheduledShifts();
 function renderDuty(){
   var day=Number(dutyDay.value);dutyCards.replaceChildren();
-  var found=0;
-  ROTA.teams.forEach(function(team){
-    var shift=ROTA.shiftOf(team.id,day);
-    if(!shift)return;
+  var todayShifts=allDuty.filter(function(item){return item.day===day});
+  todayShifts.forEach(function(item){
+    var team=item.team,shift=item.shift;
     var card=document.createElement('article');
     card.className='duty-card '+(shift.kind==='N'?'night':'');
-    var tag=cell('div',shift.kind==='D'?'Turno de día':'Turno de noche','tag');
-    var title=cell('h3','Equipo '+team.id);
-    var hours=cell('p',shift.label+' · '+shift.hours+' horas');
+    var tag=cell('div',shift.kind==='D'?'Turno diurno':'Turno nocturno','tag');
+    var title=cell('h3','Entra Equipo '+team.id);
+    var date=cell('p','Fecha: '+day+' de octubre de 2026');
+    var hours=cell('p','Horario: '+shift.label+' · '+shift.hours+' horas');
+    var prev=allDuty.filter(function(p){return p.finish===item.begin&&p.team.id!==team.id});
+    var outgoing=prev.length===1?'Releva al Equipo '+prev[0].team.id:
+      prev.length>1?'Releva a los equipos '+prev.map(function(p){return p.team.id}).join(', '):
+      'Relevo inmediato no registrado en la rotativa';
+    var relief=cell('p',outgoing,'relief');
     var members=cell('p',team.names.length+' funcionarios del equipo');
-    card.append(tag,title,hours,members);dutyCards.appendChild(card);found++;
+    card.append(tag,title,date,hours,relief,members);dutyCards.appendChild(card);
   });
-  if(!found)dutyCards.appendChild(cell('p','No hay equipos programados para este día en la rotativa.','duty-none'));
+  if(!todayShifts.length)dutyCards.appendChild(cell('p','No hay equipos programados para este día en la rotativa.','duty-none'));
 }
 dutyDay.addEventListener('change',renderDuty);
 renderDuty();
