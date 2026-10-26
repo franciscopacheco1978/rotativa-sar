@@ -1,4 +1,4 @@
-var CACHE = 'rotativa-sar-v3';
+var CACHE = 'rotativa-sar-v4';
 
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();
@@ -33,7 +33,11 @@ self.addEventListener('fetch', function (e) {
       caches.open(CACHE).then(function (c) { c.put(req, copy); });
       return res;
     }).catch(function () {
-      return caches.match(req).then(function (r) { return r || caches.match('index.html'); });
+      return caches.match(req).then(function (r) { if (r) return r;
+        var p = new URL(req.url).pathname;
+        // Solo la portada administrativa usa la portada como respaldo sin conexión.
+        if (p === '/rotativa-sar/' || p === '/rotativa-sar/index.html') return caches.match('index.html');
+        return new Response('No se pudo cargar esta página sin conexión. Vuelve a intentarlo con internet.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }); });
     })
   );
 });
