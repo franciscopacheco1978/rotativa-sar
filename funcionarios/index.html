@@ -34,12 +34,28 @@ td.weekend{border-left:1px solid #c4d1d0}th.weekend{background:#d9e4e3}
 .summary{margin-top:12px;color:#5a7472;font-size:13px}footer{font-size:12px;color:#607a77;text-align:center;margin:24px 0}
 @media(max-width:650px){.shell{padding:10px}header{padding:20px}.tablewrap{max-height:70vh}.controls{gap:8px}}
 @media print{body{background:#fff}.shell{padding:0}header{box-shadow:none}.controls,button,.notice{display:none}.tablewrap{max-height:none;overflow:visible}table{font-size:8px;min-width:0}th.person{min-width:120px;max-width:120px}th,td{padding:3px 1px}}
+.duty-panel{background:#fff;border:1px solid #bed9d6;border-radius:16px;padding:18px 20px;margin:18px 0;box-shadow:0 4px 15px #124a4810}
+.duty-head{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:12px}.duty-head h2{font-size:20px;margin:0 0 4px}.duty-head p{font-size:13px;color:#607c79;margin:0}
+.duty-date{min-width:175px}.duty-date select{padding:9px 10px}
+.duty-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:16px}
+.duty-card{border-radius:13px;padding:16px;background:#e4f4ef;border-left:4px solid #11866c}
+.duty-card.night{background:#e6effe;border-color:#467bc0}.duty-card h3{margin:5px 0;font-size:20px}
+.duty-card .tag{font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.08em;color:#466764}
+.duty-card p{margin:6px 0;font-size:13px;color:#315754}
+.duty-none{color:#607c79;font-size:14px;margin:10px 0 0}
 </style>
 </head>
 <body>
 <div class="shell">
 <header><p class="eyebrow">SAR Pedro de Valdivia · Vista funcionarios</p><h1>Calendario de turnos</h1><p>Octubre 2026 · Todos los equipos · Solo consulta</p></header>
 <div class="notice">Esta vista permite consultar los turnos de todos los funcionarios. No incluye funciones de edición ni información de ausencias o permisos. Los datos corresponden a la rotativa publicada para octubre de 2026.</div>
+<section class="duty-panel" aria-labelledby="duty-title">
+<div class="duty-head">
+<div><h2 id="duty-title">Equipos de turno por día</h2><p>Selecciona una fecha para consultar los equipos y sus horarios</p></div>
+<div class="duty-date"><label for="duty-day">Fecha de octubre</label><select id="duty-day"></select></div>
+</div>
+<div id="duty-cards" class="duty-cards" aria-live="polite"></div>
+</section>
 <div class="controls">
 <div class="control"><label for="team">Filtrar equipo</label><select id="team"><option value="0">Todos los equipos</option><option value="1">Equipo 1</option><option value="2">Equipo 2</option><option value="3">Equipo 3</option></select></div>
 <div class="control"><label for="search">Buscar funcionario</label><input id="search" type="search" placeholder="Nombre o cargo" autocomplete="off"></div>
@@ -88,6 +104,31 @@ var ROTA = (function () {
 <script>
 (function(){
 'use strict';
+var dutyDay=document.getElementById('duty-day');
+var dutyCards=document.getElementById('duty-cards');
+var chileDate=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+var parts=chileDate.split('-');
+var defaultDay=Number(parts[0])===2026&&Number(parts[1])===10?Number(parts[2]):1;
+for(var day=1;day<=31;day++){var option=document.createElement('option');option.value=String(day);option.textContent=day+' de octubre';dutyDay.appendChild(option)}
+dutyDay.value=String(defaultDay);
+function renderDuty(){
+  var day=Number(dutyDay.value);dutyCards.replaceChildren();
+  var found=0;
+  ROTA.teams.forEach(function(team){
+    var shift=ROTA.shiftOf(team.id,day);
+    if(!shift)return;
+    var card=document.createElement('article');
+    card.className='duty-card '+(shift.kind==='N'?'night':'');
+    var tag=cell('div',shift.kind==='D'?'Turno de día':'Turno de noche','tag');
+    var title=cell('h3','Equipo '+team.id);
+    var hours=cell('p',shift.label+' · '+shift.hours+' horas');
+    var members=cell('p',team.names.length+' funcionarios del equipo');
+    card.append(tag,title,hours,members);dutyCards.appendChild(card);found++;
+  });
+  if(!found)dutyCards.appendChild(cell('p','No hay equipos programados para este día en la rotativa.','duty-none'));
+}
+dutyDay.addEventListener('change',renderDuty);
+renderDuty();
 var teamSelect=document.getElementById('team');
 var search=document.getElementById('search');
 var head=document.getElementById('thead');
